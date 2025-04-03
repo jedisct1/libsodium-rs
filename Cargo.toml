@@ -1,0 +1,98 @@
+[package]
+name = "libsodium-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Frank Denis <github@pureftpd.org>"]
+description = "A comprehensive, idiomatic Rust wrapper for libsodium, providing a safe and ergonomic API for cryptographic operations"
+license = "MIT"
+repository = "https://github.com/jedisct1/libsodium-rs"
+documentation = "https://docs.rs/libsodium-rs"
+homepage = "https://github.com/jedisct1/libsodium-rs"
+readme = "README.md"
+keywords = ["crypto", "sodium", "libsodium", "encryption", "cryptography"]
+categories = ["cryptography", "external-ffi-bindings", "api-bindings"]
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
+    "build.rs",
+]
+exclude = [
+    "benches/**/*",
+]
+rust-version = "1.60.0"
+
+[dependencies]
+libsodium-sys-stable = { version = "1.22.2" }
+thiserror = "2.0"
+ctor = "0.4"
+libc = "0.2"
+ct-codecs = "1.1.3"
+zeroize = { version = "1.8", features = ["zeroize_derive"] }
+
+[build-dependencies]
+pkg-config = "0.3"
+
+[features]
+default = []
+# Enable this feature if you want to use the latest stable version of libsodium
+fetch-latest = ["libsodium-sys-stable/fetch-latest"]
+# Enable optimized build for the current platform
+optimized = ["libsodium-sys-stable/optimized"]
+# Do not build deprecated APIs
+minimal = ["libsodium-sys-stable/minimal"]
+
+[package.metadata.docs.rs]
+features = ["fetch-latest", "optimized"]
+
+[dev-dependencies]
+benchmark-simple = "0.1.10"
+
+[[bench]]
+name = "crypto_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_kdf_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_pwhash_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_aead_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_generichash_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_hash_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_auth_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_secretbox_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_box_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_sign_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_kx_benchmarks"
+harness = false
+
+[[bench]]
+name = "crypto_secretstream_benchmarks"
+harness = false

@@ -1,0 +1,2 @@
+# Disable the similar-names lint globally
+disallowed-names = []
