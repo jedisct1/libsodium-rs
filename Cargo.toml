@@ -1,6 +1,6 @@
 [package]
 name = "libsodium-rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Frank Denis <github@pureftpd.org>"]
 description = "A comprehensive, idiomatic Rust wrapper for libsodium, providing a safe and ergonomic API for cryptographic operations"
@@ -44,7 +44,7 @@ optimized = ["libsodium-sys-stable/optimized"]
 minimal = ["libsodium-sys-stable/minimal"]
 
 [package.metadata.docs.rs]
-features = ["fetch-latest", "optimized"]
+all-features = false
 
 [dev-dependencies]
 benchmark-simple = "0.1.10"
@@ -96,3 +96,4 @@ harness = false
 [[bench]]
 name = "crypto_secretstream_benchmarks"
 harness = false
+
