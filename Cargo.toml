@@ -45,6 +45,7 @@ minimal = ["libsodium-sys-stable/minimal"]
 
 [package.metadata.docs.rs]
 all-features = false
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dev-dependencies]
 benchmark-simple = "0.1.10"
