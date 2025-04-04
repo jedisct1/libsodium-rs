@@ -12,7 +12,7 @@ A comprehensive, idiomatic Rust wrapper for [libsodium](https://libsodium.org), 
 
 ## Features
 
-- **Complete Coverage**: Implements the entire libsodium API in Rust
+- **Complete Coverage**: Implements the entire libsodium API for Rust
 - **Memory Safety**: Ensures secure memory handling with automatic clearing of sensitive data
 - **Type Safety**: Leverages Rust's type system to prevent misuse of cryptographic primitives
 - **Extensive Testing**: Comprehensive test suite covering all functionality
