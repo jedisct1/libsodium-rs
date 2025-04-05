@@ -224,16 +224,18 @@ mod tests {
     fn test_scalarmult() {
         // For testing purposes, we'll just check that the function doesn't panic
         let mut secret_key = vec![0u8; SCALARBYTES];
-        for i in 0..secret_key.len() {
-            secret_key[i] = i as u8;
-        }
+        // Initialize with sequential values
+        secret_key.iter_mut().enumerate().for_each(|(i, byte)| {
+            *byte = i as u8;
+        });
         // Make sure it's not all zeros
         secret_key[0] = 1;
 
         let mut public_key = vec![0u8; BYTES];
-        for i in 0..public_key.len() {
-            public_key[i] = (i + 100) as u8;
-        }
+        // Initialize with sequential values offset by 100
+        public_key.iter_mut().enumerate().for_each(|(i, byte)| {
+            *byte = (i + 100) as u8;
+        });
 
         // Try the operation, but don't unwrap
         match scalarmult(&secret_key, &public_key) {
@@ -251,9 +253,10 @@ mod tests {
     fn test_scalarmult_base() {
         // For testing purposes, we'll just check that the function doesn't panic
         let mut secret_key = vec![0u8; SCALARBYTES];
-        for i in 0..secret_key.len() {
-            secret_key[i] = i as u8;
-        }
+        // Initialize with sequential values
+        secret_key.iter_mut().enumerate().for_each(|(i, byte)| {
+            *byte = i as u8;
+        });
         // Make sure it's not all zeros
         secret_key[0] = 1;
 

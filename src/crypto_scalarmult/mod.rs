@@ -178,14 +178,16 @@ mod tests {
         // Ed25519 requires specially formatted keys for scalar multiplication
         // For testing purposes, we'll just check that the function doesn't panic
         let mut secret_key = vec![0u8; ed25519::SCALARBYTES];
-        for i in 0..secret_key.len() {
-            secret_key[i] = i as u8;
-        }
+        // Initialize with sequential values
+        secret_key.iter_mut().enumerate().for_each(|(i, byte)| {
+            *byte = i as u8;
+        });
 
         let mut public_key = vec![0u8; ed25519::BYTES];
-        for i in 0..public_key.len() {
-            public_key[i] = (i + 100) as u8;
-        }
+        // Initialize with sequential values offset by 100
+        public_key.iter_mut().enumerate().for_each(|(i, byte)| {
+            *byte = (i + 100) as u8;
+        });
 
         // Try the operation, but don't unwrap
         match ed25519::scalarmult(&secret_key, &public_key) {
@@ -205,14 +207,16 @@ mod tests {
         // Ristretto255 requires specially formatted keys for scalar multiplication
         // For testing purposes, we'll just check that the function doesn't panic
         let mut secret_key = vec![0u8; ristretto255::SCALARBYTES];
-        for i in 0..secret_key.len() {
-            secret_key[i] = i as u8;
-        }
+        // Initialize with sequential values
+        secret_key.iter_mut().enumerate().for_each(|(i, byte)| {
+            *byte = i as u8;
+        });
 
         let mut public_key = vec![0u8; ristretto255::BYTES];
-        for i in 0..public_key.len() {
-            public_key[i] = (i + 100) as u8;
-        }
+        // Initialize with sequential values offset by 100
+        public_key.iter_mut().enumerate().for_each(|(i, byte)| {
+            *byte = (i + 100) as u8;
+        });
 
         // Try the operation, but don't unwrap
         match ristretto255::scalarmult(&secret_key, &public_key) {
