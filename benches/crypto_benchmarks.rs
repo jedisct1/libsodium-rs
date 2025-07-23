@@ -23,21 +23,21 @@ fn main() {
     let data_sizes = [64, 1024, 16384, 65536]; // bytes
     for &size in &data_sizes {
         let data = random::bytes(size);
-        let bench_name = format!("SHA-256 hash {} bytes", size);
+        let bench_name = format!("SHA-256 hash {size} bytes");
         let bench_result = bench.run(&options, || crypto_hash::hash_sha256(&data));
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     println!("\n=== SHA-512 Hash Benchmarks ===");
     for &size in &data_sizes {
         let data = random::bytes(size);
-        let bench_name = format!("SHA-512 hash {} bytes", size);
+        let bench_name = format!("SHA-512 hash {size} bytes");
         let bench_result = bench.run(&options, || crypto_hash::hash_sha512(&data));
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     // Benchmark HMAC operations
@@ -45,35 +45,35 @@ fn main() {
     for &size in &data_sizes {
         let data = random::bytes(size);
         let key = hmacsha256::Key::generate();
-        let bench_name = format!("HMAC-SHA-256 {} bytes", size);
+        let bench_name = format!("HMAC-SHA-256 {size} bytes");
         let bench_result = bench.run(&options, || hmacsha256::auth(&data, &key).unwrap());
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     println!("\n=== HMAC-SHA-512 Benchmarks ===");
     for &size in &data_sizes {
         let data = random::bytes(size);
         let key = hmacsha512::Key::generate();
-        let bench_name = format!("HMAC-SHA-512 {} bytes", size);
+        let bench_name = format!("HMAC-SHA-512 {size} bytes");
         let bench_result = bench.run(&options, || hmacsha512::auth(&data, &key).unwrap());
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     // Benchmark BLAKE2b hash operations
     println!("\n=== BLAKE2b Hash Benchmarks ===");
     for &size in &data_sizes {
         let data = random::bytes(size);
-        let bench_name = format!("BLAKE2b hash {} bytes", size);
+        let bench_name = format!("BLAKE2b hash {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_generichash::generichash(&data, None, crypto_generichash::BYTES).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     // Benchmark symmetric encryption operations
@@ -84,20 +84,20 @@ fn main() {
         let nonce =
             &crypto_secretbox::Nonce::try_from_slice(&[0u8; crypto_secretbox::NONCEBYTES]).unwrap();
 
-        let bench_name = format!("SecretBox encrypt {} bytes", size);
+        let bench_name = format!("SecretBox encrypt {size} bytes");
         let bench_result = bench.run(&options, || crypto_secretbox::seal(&data, nonce, &key));
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         let ciphertext = crypto_secretbox::seal(&data, nonce, &key);
-        let bench_name = format!("SecretBox decrypt {} bytes", size);
+        let bench_name = format!("SecretBox decrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_secretbox::open(&ciphertext, nonce, &key).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     // Benchmark asymmetric encryption operations
@@ -114,22 +114,22 @@ fn main() {
     for &size in &data_sizes {
         let data = random::bytes(size);
 
-        let bench_name = format!("Box encrypt {} bytes", size);
+        let bench_name = format!("Box encrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_box::seal(&data, nonce, &bob_pk, &alice_sk).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         let ciphertext = crypto_box::seal(&data, nonce, &bob_pk, &alice_sk).unwrap();
-        let bench_name = format!("Box decrypt {} bytes", size);
+        let bench_name = format!("Box decrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_box::open(&ciphertext, nonce, &alice_pk, &bob_sk).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     // Benchmark digital signature operations
@@ -141,17 +141,17 @@ fn main() {
     for &size in &data_sizes {
         let data = random::bytes(size);
 
-        let bench_name = format!("Ed25519 sign {} bytes", size);
+        let bench_name = format!("Ed25519 sign {size} bytes");
         let bench_result = bench.run(&options, || crypto_sign::sign(&data, &sk).unwrap());
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         let signed_msg = crypto_sign::sign(&data, &sk).unwrap();
-        let bench_name = format!("Ed25519 verify {} bytes", size);
+        let bench_name = format!("Ed25519 verify {size} bytes");
         let bench_result = bench.run(&options, || crypto_sign::verify(&signed_msg, &pk).unwrap());
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 }

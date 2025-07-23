@@ -181,8 +181,7 @@ impl State {
     pub fn new(key: Option<&[u8]>, output_len: usize) -> Result<Self> {
         if !(BYTES_MIN..=BYTES_MAX).contains(&output_len) {
             return Err(SodiumError::InvalidInput(format!(
-                "Output length must be between {} and {} bytes",
-                BYTES_MIN, BYTES_MAX
+                "Output length must be between {BYTES_MIN} and {BYTES_MAX} bytes"
             )));
         }
 
@@ -190,8 +189,7 @@ impl State {
             // KEYBYTES_MIN is 0, so we only need to check the upper bound
             if key.len() > KEYBYTES_MAX {
                 return Err(SodiumError::InvalidInput(format!(
-                    "Key length must be at most {} bytes",
-                    KEYBYTES_MAX
+                    "Key length must be at most {KEYBYTES_MAX} bytes"
                 )));
             }
         }
@@ -334,8 +332,7 @@ impl State {
     ) -> Result<Self> {
         if !(BYTES_MIN..=BYTES_MAX).contains(&output_len) {
             return Err(SodiumError::InvalidInput(format!(
-                "Output length must be between {} and {} bytes",
-                BYTES_MIN, BYTES_MAX
+                "Output length must be between {BYTES_MIN} and {BYTES_MAX} bytes"
             )));
         }
 
@@ -343,8 +340,7 @@ impl State {
             // KEYBYTES_MIN is 0, so we only need to check the upper bound
             if key.len() > KEYBYTES_MAX {
                 return Err(SodiumError::InvalidInput(format!(
-                    "Key length must be at most {} bytes",
-                    KEYBYTES_MAX
+                    "Key length must be at most {KEYBYTES_MAX} bytes"
                 )));
             }
         }
@@ -353,8 +349,7 @@ impl State {
         if let Some(salt) = salt {
             if salt.len() != SALTBYTES {
                 return Err(SodiumError::InvalidInput(format!(
-                    "Salt length must be exactly {} bytes",
-                    SALTBYTES
+                    "Salt length must be exactly {SALTBYTES} bytes"
                 )));
             }
         }
@@ -363,8 +358,7 @@ impl State {
         if let Some(personal) = personal {
             if personal.len() != PERSONALBYTES {
                 return Err(SodiumError::InvalidInput(format!(
-                    "Personalization length must be exactly {} bytes",
-                    PERSONALBYTES
+                    "Personalization length must be exactly {PERSONALBYTES} bytes"
                 )));
             }
         }

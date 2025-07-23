@@ -27,19 +27,19 @@ fn main() {
         let nonce =
             &crypto_secretbox::Nonce::try_from_slice(&[0u8; crypto_secretbox::NONCEBYTES]).unwrap();
 
-        let bench_name = format!("SecretBox encrypt {} bytes", size);
+        let bench_name = format!("SecretBox encrypt {size} bytes");
         let bench_result = bench.run(&options, || crypto_secretbox::seal(&data, nonce, &key));
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         let ciphertext = crypto_secretbox::seal(&data, nonce, &key);
-        let bench_name = format!("SecretBox decrypt {} bytes", size);
+        let bench_name = format!("SecretBox decrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_secretbox::open(&ciphertext, nonce, &key).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 }

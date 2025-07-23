@@ -122,7 +122,7 @@ mod tests {
     fn test_version_string() {
         let version = version_string();
         assert!(!version.is_empty());
-        println!("libsodium version: {}", version);
+        println!("libsodium version: {version}");
     }
 
     #[test]
@@ -131,12 +131,12 @@ mod tests {
         let minor = library_version_minor();
         assert!(major >= 0);
         assert!(minor >= 0);
-        println!("libsodium version: {}.{}", major, minor);
+        println!("libsodium version: {major}.{minor}");
     }
 
     #[test]
     fn test_library_minimal() {
         let is_minimal = library_minimal();
-        println!("Is minimal implementation: {}", is_minimal);
+        println!("Is minimal implementation: {is_minimal}");
     }
 }

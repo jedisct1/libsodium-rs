@@ -165,8 +165,7 @@ impl TryFrom<&[u8]> for Key {
     fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
         if slice.len() != KEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "key must be exactly {} bytes",
-                KEYBYTES
+                "key must be exactly {KEYBYTES} bytes"
             )));
         }
         let mut key = [0u8; KEYBYTES];
@@ -252,8 +251,7 @@ impl Key {
     pub fn from_slice(slice: &[u8]) -> Result<Self> {
         if slice.len() != KEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "key must be exactly {} bytes",
-                KEYBYTES
+                "key must be exactly {KEYBYTES} bytes"
             )));
         }
         let mut key = [0u8; KEYBYTES];
@@ -372,15 +370,13 @@ pub fn derive_from_key(
 ) -> Result<Vec<u8>> {
     if !(BYTES_MIN..=BYTES_MAX).contains(&subkey_len) {
         return Err(SodiumError::InvalidInput(format!(
-            "subkey length must be between {} and {}",
-            BYTES_MIN, BYTES_MAX
+            "subkey length must be between {BYTES_MIN} and {BYTES_MAX}"
         )));
     }
 
     if context.len() != CONTEXTBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "context must be exactly {} bytes",
-            CONTEXTBYTES
+            "context must be exactly {CONTEXTBYTES} bytes"
         )));
     }
 
@@ -495,8 +491,7 @@ pub mod blake2b {
         fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
             if slice.len() != KEYBYTES {
                 return Err(SodiumError::InvalidInput(format!(
-                    "key must be exactly {} bytes",
-                    KEYBYTES
+                    "key must be exactly {KEYBYTES} bytes"
                 )));
             }
             let mut key = [0u8; KEYBYTES];
@@ -532,8 +527,7 @@ pub mod blake2b {
         pub fn from_slice(slice: &[u8]) -> Result<Self> {
             if slice.len() != KEYBYTES {
                 return Err(SodiumError::InvalidInput(format!(
-                    "key must be exactly {} bytes",
-                    KEYBYTES
+                    "key must be exactly {KEYBYTES} bytes"
                 )));
             }
             let mut key = [0u8; KEYBYTES];
@@ -612,15 +606,13 @@ pub mod blake2b {
     ) -> Result<Vec<u8>> {
         if !(BYTES_MIN..=BYTES_MAX).contains(&subkey_len) {
             return Err(SodiumError::InvalidInput(format!(
-                "subkey length must be between {} and {} bytes",
-                BYTES_MIN, BYTES_MAX
+                "subkey length must be between {BYTES_MIN} and {BYTES_MAX} bytes"
             )));
         }
 
         if context.len() != CONTEXTBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "context must be exactly {} bytes",
-                CONTEXTBYTES
+                "context must be exactly {CONTEXTBYTES} bytes"
             )));
         }
 
@@ -714,8 +706,7 @@ pub mod hkdf {
             fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
                 if slice.len() != KEYBYTES {
                     return Err(SodiumError::InvalidInput(format!(
-                        "PRK must be exactly {} bytes",
-                        KEYBYTES
+                        "PRK must be exactly {KEYBYTES} bytes"
                     )));
                 }
                 let mut prk = [0u8; KEYBYTES];
@@ -762,8 +753,7 @@ pub mod hkdf {
             pub fn from_slice(slice: &[u8]) -> Result<Self> {
                 if slice.len() != KEYBYTES {
                     return Err(SodiumError::InvalidInput(format!(
-                        "PRK must be exactly {} bytes",
-                        KEYBYTES
+                        "PRK must be exactly {KEYBYTES} bytes"
                     )));
                 }
 
@@ -875,8 +865,7 @@ pub mod hkdf {
         pub fn expand(out_len: usize, ctx: Option<&[u8]>, prk: &Prk) -> Result<Vec<u8>> {
             if out_len > BYTES_MAX {
                 return Err(SodiumError::InvalidInput(format!(
-                    "output length must be at most {} bytes",
-                    BYTES_MAX
+                    "output length must be at most {BYTES_MAX} bytes"
                 )));
             }
 
@@ -1079,8 +1068,7 @@ pub mod hkdf {
             fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
                 if slice.len() != KEYBYTES {
                     return Err(SodiumError::InvalidInput(format!(
-                        "PRK must be exactly {} bytes",
-                        KEYBYTES
+                        "PRK must be exactly {KEYBYTES} bytes"
                     )));
                 }
                 let mut prk = [0u8; KEYBYTES];
@@ -1127,8 +1115,7 @@ pub mod hkdf {
             pub fn from_slice(slice: &[u8]) -> Result<Self> {
                 if slice.len() != KEYBYTES {
                     return Err(SodiumError::InvalidInput(format!(
-                        "PRK must be exactly {} bytes",
-                        KEYBYTES
+                        "PRK must be exactly {KEYBYTES} bytes"
                     )));
                 }
 
@@ -1238,8 +1225,7 @@ pub mod hkdf {
         pub fn expand(out_len: usize, ctx: Option<&[u8]>, prk: &Prk) -> Result<Vec<u8>> {
             if out_len > BYTES_MAX {
                 return Err(SodiumError::InvalidInput(format!(
-                    "output length must be at most {} bytes",
-                    BYTES_MAX
+                    "output length must be at most {BYTES_MAX} bytes"
                 )));
             }
 

@@ -36,36 +36,31 @@ pub fn pwhash(
 ) -> Result<Vec<u8>> {
     if !(BYTES_MIN..=BYTES_MAX).contains(&out_len) {
         return Err(SodiumError::InvalidInput(format!(
-            "output length must be between {} and {} bytes",
-            BYTES_MIN, BYTES_MAX
+            "output length must be between {BYTES_MIN} and {BYTES_MAX} bytes"
         )));
     }
 
     if password.len() > PASSWD_MAX {
         return Err(SodiumError::InvalidInput(format!(
-            "password length must be between {} and {} bytes",
-            PASSWD_MIN, PASSWD_MAX
+            "password length must be between {PASSWD_MIN} and {PASSWD_MAX} bytes"
         )));
     }
 
     if salt.len() != SALTBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "salt must be exactly {} bytes",
-            SALTBYTES
+            "salt must be exactly {SALTBYTES} bytes"
         )));
     }
 
     if !(OPSLIMIT_MIN..=OPSLIMIT_MAX).contains(&opslimit) {
         return Err(SodiumError::InvalidInput(format!(
-            "opslimit must be between {} and {}",
-            OPSLIMIT_MIN, OPSLIMIT_MAX
+            "opslimit must be between {OPSLIMIT_MIN} and {OPSLIMIT_MAX}"
         )));
     }
 
     if !(MEMLIMIT_MIN..=MEMLIMIT_MAX).contains(&memlimit) {
         return Err(SodiumError::InvalidInput(format!(
-            "memlimit must be between {} and {}",
-            MEMLIMIT_MIN, MEMLIMIT_MAX
+            "memlimit must be between {MEMLIMIT_MIN} and {MEMLIMIT_MAX}"
         )));
     }
 
@@ -95,22 +90,19 @@ pub fn pwhash(
 pub fn pwhash_str(password: &[u8], opslimit: u64, memlimit: usize) -> Result<String> {
     if password.len() > PASSWD_MAX {
         return Err(SodiumError::InvalidInput(format!(
-            "password length must be between {} and {} bytes",
-            PASSWD_MIN, PASSWD_MAX
+            "password length must be between {PASSWD_MIN} and {PASSWD_MAX} bytes"
         )));
     }
 
     if !(OPSLIMIT_MIN..=OPSLIMIT_MAX).contains(&opslimit) {
         return Err(SodiumError::InvalidInput(format!(
-            "opslimit must be between {} and {}",
-            OPSLIMIT_MIN, OPSLIMIT_MAX
+            "opslimit must be between {OPSLIMIT_MIN} and {OPSLIMIT_MAX}"
         )));
     }
 
     if !(MEMLIMIT_MIN..=MEMLIMIT_MAX).contains(&memlimit) {
         return Err(SodiumError::InvalidInput(format!(
-            "memlimit must be between {} and {}",
-            MEMLIMIT_MIN, MEMLIMIT_MAX
+            "memlimit must be between {MEMLIMIT_MIN} and {MEMLIMIT_MAX}"
         )));
     }
 
@@ -143,8 +135,7 @@ pub fn pwhash_str(password: &[u8], opslimit: u64, memlimit: usize) -> Result<Str
 pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> Result<bool> {
     if password.len() > PASSWD_MAX {
         return Err(SodiumError::InvalidInput(format!(
-            "password length must be between {} and {} bytes",
-            PASSWD_MIN, PASSWD_MAX
+            "password length must be between {PASSWD_MIN} and {PASSWD_MAX} bytes"
         )));
     }
 
@@ -189,15 +180,13 @@ pub fn pwhash_ll(
 ) -> Result<Vec<u8>> {
     if password.len() > PASSWD_MAX {
         return Err(SodiumError::InvalidInput(format!(
-            "password length must be between {} and {} bytes",
-            PASSWD_MIN, PASSWD_MAX
+            "password length must be between {PASSWD_MIN} and {PASSWD_MAX} bytes"
         )));
     }
 
     if !(BYTES_MIN..=BYTES_MAX).contains(&out_len) {
         return Err(SodiumError::InvalidInput(format!(
-            "output length must be between {} and {} bytes",
-            BYTES_MIN, BYTES_MAX
+            "output length must be between {BYTES_MIN} and {BYTES_MAX} bytes"
         )));
     }
 

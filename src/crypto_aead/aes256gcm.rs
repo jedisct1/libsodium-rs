@@ -223,8 +223,7 @@ impl Nonce {
     pub fn try_from_slice(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != NPUBBYTES {
             return Err(SodiumError::InvalidNonce(format!(
-                "nonce must be exactly {} bytes",
-                NPUBBYTES
+                "nonce must be exactly {NPUBBYTES} bytes"
             )));
         }
 
@@ -326,8 +325,7 @@ impl Key {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != KEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "key must be exactly {} bytes",
-                KEYBYTES
+                "key must be exactly {KEYBYTES} bytes"
             )));
         }
 
@@ -484,8 +482,7 @@ pub fn encrypt(
 
     if nonce.as_ref().len() != NPUBBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "nonce must be exactly {} bytes",
-            NPUBBYTES
+            "nonce must be exactly {NPUBBYTES} bytes"
         )));
     }
 
@@ -602,8 +599,7 @@ pub fn decrypt(
 
     if nonce.as_ref().len() != NPUBBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "nonce must be exactly {} bytes",
-            NPUBBYTES
+            "nonce must be exactly {NPUBBYTES} bytes"
         )));
     }
 
@@ -724,8 +720,7 @@ pub fn encrypt_detached(
 
     if nonce.as_ref().len() != NPUBBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "nonce must be exactly {} bytes",
-            NPUBBYTES
+            "nonce must be exactly {NPUBBYTES} bytes"
         )));
     }
 
@@ -848,15 +843,13 @@ pub fn decrypt_detached(
 
     if nonce.as_ref().len() != NPUBBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "nonce must be exactly {} bytes",
-            NPUBBYTES
+            "nonce must be exactly {NPUBBYTES} bytes"
         )));
     }
 
     if tag.len() != ABYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "tag must be exactly {} bytes",
-            ABYTES
+            "tag must be exactly {ABYTES} bytes"
         )));
     }
 
@@ -967,8 +960,7 @@ pub fn encrypt_afternm(
 ) -> Result<Vec<u8>> {
     if nonce.as_ref().len() != NPUBBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "nonce must be exactly {} bytes",
-            NPUBBYTES
+            "nonce must be exactly {NPUBBYTES} bytes"
         )));
     }
 
@@ -1033,8 +1025,7 @@ pub fn decrypt_afternm(
 ) -> Result<Vec<u8>> {
     if nonce.as_ref().len() != NPUBBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "nonce must be exactly {} bytes",
-            NPUBBYTES
+            "nonce must be exactly {NPUBBYTES} bytes"
         )));
     }
 
@@ -1165,8 +1156,7 @@ pub fn decrypt_detached_afternm(
 ) -> Result<Vec<u8>> {
     if tag.len() != ABYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "tag must be exactly {} bytes",
-            ABYTES
+            "tag must be exactly {ABYTES} bytes"
         )));
     }
 

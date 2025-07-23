@@ -24,7 +24,7 @@ fn main() {
     let bench_name = "KX keypair generation";
     let bench_result = bench.run(&options, || crypto_kx::KeyPair::generate().unwrap());
     let ops_per_sec = 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-    println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+    println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
     // Generate keypairs for client and server
     let client_keypair = crypto_kx::KeyPair::generate().unwrap();
@@ -40,7 +40,7 @@ fn main() {
         crypto_kx::client_session_keys(&client_pk, &client_sk, &server_pk).unwrap()
     });
     let ops_per_sec = 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-    println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+    println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
     // Benchmark server session key computation
     let bench_name = "KX server session keys";
@@ -48,5 +48,5 @@ fn main() {
         crypto_kx::server_session_keys(&server_pk, &server_sk, &client_pk).unwrap()
     });
     let ops_per_sec = 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-    println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+    println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 }

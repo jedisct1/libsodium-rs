@@ -170,8 +170,7 @@ impl Nonce {
     pub fn try_from_slice(bytes: &[u8]) -> crate::Result<Self> {
         if bytes.len() != NONCEBYTES {
             return Err(crate::SodiumError::InvalidNonce(format!(
-                "nonce must be exactly {} bytes",
-                NONCEBYTES
+                "nonce must be exactly {NONCEBYTES} bytes"
             )));
         }
 
@@ -300,8 +299,7 @@ impl Key {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != KEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "key must be exactly {} bytes",
-                KEYBYTES
+                "key must be exactly {KEYBYTES} bytes"
             )));
         }
 

@@ -82,8 +82,7 @@ impl Nonce {
     pub fn try_from_slice(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != NONCEBYTES {
             return Err(SodiumError::InvalidNonce(format!(
-                "nonce must be exactly {} bytes",
-                NONCEBYTES
+                "nonce must be exactly {NONCEBYTES} bytes"
             )));
         }
 

@@ -196,8 +196,7 @@ pub fn decrypt_afternm(
 ) -> Result<Vec<u8>> {
     if ciphertext.len() < ABYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "ciphertext must be at least {} bytes",
-            ABYTES
+            "ciphertext must be at least {ABYTES} bytes"
         )));
     }
 
@@ -339,8 +338,7 @@ pub fn decrypt_detached_afternm(
 ) -> Result<Vec<u8>> {
     if tag.len() != ABYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "tag must be exactly {} bytes",
-            ABYTES
+            "tag must be exactly {ABYTES} bytes"
         )));
     }
 

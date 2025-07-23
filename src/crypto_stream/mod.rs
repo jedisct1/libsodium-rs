@@ -122,8 +122,7 @@ impl Key {
     pub fn from_slice(slice: &[u8]) -> Result<Self> {
         if slice.len() != KEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "key must be exactly {} bytes",
-                KEYBYTES
+                "key must be exactly {KEYBYTES} bytes"
             )));
         }
 

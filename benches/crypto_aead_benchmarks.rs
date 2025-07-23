@@ -31,26 +31,26 @@ fn main() {
     for &size in &data_sizes {
         let data = random::bytes(size);
 
-        let bench_name = format!("XChaCha20-Poly1305 encrypt {} bytes", size);
+        let bench_name = format!("XChaCha20-Poly1305 encrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_aead::xchacha20poly1305::encrypt(&data, Some(additional_data), nonce, &key)
                 .unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         let ciphertext =
             crypto_aead::xchacha20poly1305::encrypt(&data, Some(additional_data), nonce, &key)
                 .unwrap();
-        let bench_name = format!("XChaCha20-Poly1305 decrypt {} bytes", size);
+        let bench_name = format!("XChaCha20-Poly1305 decrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_aead::xchacha20poly1305::decrypt(&ciphertext, Some(additional_data), nonce, &key)
                 .unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     // AES256-GCM benchmarks (only if supported)
@@ -65,24 +65,24 @@ fn main() {
         for &size in &data_sizes {
             let data = random::bytes(size);
 
-            let bench_name = format!("AES256-GCM encrypt {} bytes", size);
+            let bench_name = format!("AES256-GCM encrypt {size} bytes");
             let bench_result = bench.run(&options, || {
                 crypto_aead::aes256gcm::encrypt(&data, Some(additional_data), nonce, &key).unwrap()
             });
             let ops_per_sec =
                 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-            println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+            println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
             let ciphertext =
                 crypto_aead::aes256gcm::encrypt(&data, Some(additional_data), nonce, &key).unwrap();
-            let bench_name = format!("AES256-GCM decrypt {} bytes", size);
+            let bench_name = format!("AES256-GCM decrypt {size} bytes");
             let bench_result = bench.run(&options, || {
                 crypto_aead::aes256gcm::decrypt(&ciphertext, Some(additional_data), nonce, &key)
                     .unwrap()
             });
             let ops_per_sec =
                 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-            println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+            println!("{bench_name}: {ops_per_sec:.2} ops/sec");
         }
     } else {
         println!("\nAES256-GCM not available on this CPU, skipping benchmarks");
@@ -98,24 +98,24 @@ fn main() {
     for &size in &data_sizes {
         let data = random::bytes(size);
 
-        let bench_name = format!("AEGIS-128L encrypt {} bytes", size);
+        let bench_name = format!("AEGIS-128L encrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_aead::aegis128l::encrypt(&data, Some(additional_data), nonce, &key).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         let ciphertext =
             crypto_aead::aegis128l::encrypt(&data, Some(additional_data), nonce, &key).unwrap();
-        let bench_name = format!("AEGIS-128L decrypt {} bytes", size);
+        let bench_name = format!("AEGIS-128L decrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_aead::aegis128l::decrypt(&ciphertext, Some(additional_data), nonce, &key)
                 .unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     // AEGIS-256 benchmarks
@@ -128,22 +128,22 @@ fn main() {
     for &size in &data_sizes {
         let data = random::bytes(size);
 
-        let bench_name = format!("AEGIS-256 encrypt {} bytes", size);
+        let bench_name = format!("AEGIS-256 encrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_aead::aegis256::encrypt(&data, Some(additional_data), nonce, &key).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         let ciphertext =
             crypto_aead::aegis256::encrypt(&data, Some(additional_data), nonce, &key).unwrap();
-        let bench_name = format!("AEGIS-256 decrypt {} bytes", size);
+        let bench_name = format!("AEGIS-256 decrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_aead::aegis256::decrypt(&ciphertext, Some(additional_data), nonce, &key).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 }

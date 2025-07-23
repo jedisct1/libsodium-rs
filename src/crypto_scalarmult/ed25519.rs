@@ -120,14 +120,12 @@ pub const SCALARBYTES: usize = libsodium_sys::crypto_scalarmult_ed25519_SCALARBY
 pub fn scalarmult(secret_key: &[u8], public_key: &[u8]) -> Result<[u8; BYTES]> {
     if secret_key.len() != SCALARBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "secret key must be exactly {} bytes",
-            SCALARBYTES
+            "secret key must be exactly {SCALARBYTES} bytes"
         )));
     }
     if public_key.len() != BYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "public key must be exactly {} bytes",
-            BYTES
+            "public key must be exactly {BYTES} bytes"
         )));
     }
 
@@ -207,14 +205,12 @@ pub fn scalarmult(secret_key: &[u8], public_key: &[u8]) -> Result<[u8; BYTES]> {
 pub fn scalarmult_noclamp(secret_key: &[u8], public_key: &[u8]) -> Result<[u8; BYTES]> {
     if secret_key.len() != SCALARBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "secret key must be exactly {} bytes",
-            SCALARBYTES
+            "secret key must be exactly {SCALARBYTES} bytes"
         )));
     }
     if public_key.len() != BYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "public key must be exactly {} bytes",
-            BYTES
+            "public key must be exactly {BYTES} bytes"
         )));
     }
 
@@ -290,8 +286,7 @@ pub fn scalarmult_noclamp(secret_key: &[u8], public_key: &[u8]) -> Result<[u8; B
 pub fn scalarmult_base(secret_key: &[u8]) -> Result<[u8; BYTES]> {
     if secret_key.len() != SCALARBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "secret key must be exactly {} bytes",
-            SCALARBYTES
+            "secret key must be exactly {SCALARBYTES} bytes"
         )));
     }
 
@@ -363,8 +358,7 @@ pub fn scalarmult_base(secret_key: &[u8]) -> Result<[u8; BYTES]> {
 pub fn scalarmult_base_noclamp(secret_key: &[u8]) -> Result<[u8; BYTES]> {
     if secret_key.len() != SCALARBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "secret key must be exactly {} bytes",
-            SCALARBYTES
+            "secret key must be exactly {SCALARBYTES} bytes"
         )));
     }
 

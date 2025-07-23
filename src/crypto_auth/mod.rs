@@ -129,8 +129,7 @@ impl Key {
     pub fn from_slice(slice: &[u8]) -> Result<Self> {
         if slice.len() != KEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "key must be exactly {} bytes",
-                KEYBYTES
+                "key must be exactly {KEYBYTES} bytes"
             )));
         }
         let mut key = [0u8; KEYBYTES];
@@ -233,8 +232,7 @@ impl Tag {
     pub fn from_slice(slice: &[u8]) -> Result<Self> {
         if slice.len() != BYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "tag must be exactly {} bytes",
-                BYTES
+                "tag must be exactly {BYTES} bytes"
             )));
         }
         let mut tag = [0u8; BYTES];

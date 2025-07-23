@@ -119,8 +119,7 @@ impl Nonce {
     pub fn try_from_slice(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != NONCEBYTES {
             return Err(SodiumError::InvalidNonce(format!(
-                "nonce must be exactly {} bytes",
-                NONCEBYTES
+                "nonce must be exactly {NONCEBYTES} bytes"
             )));
         }
 
@@ -201,8 +200,7 @@ impl PublicKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != PUBLICKEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "public key must be exactly {} bytes",
-                PUBLICKEYBYTES
+                "public key must be exactly {PUBLICKEYBYTES} bytes"
             )));
         }
 
@@ -267,8 +265,7 @@ impl SecretKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != SECRETKEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "secret key must be exactly {} bytes",
-                SECRETKEYBYTES
+                "secret key must be exactly {SECRETKEYBYTES} bytes"
             )));
         }
 
@@ -333,8 +330,7 @@ impl PrecomputedKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != BEFORENMBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "precomputed key must be exactly {} bytes",
-                BEFORENMBYTES
+                "precomputed key must be exactly {BEFORENMBYTES} bytes"
             )));
         }
 
@@ -446,8 +442,7 @@ impl KeyPair {
     pub fn from_seed(seed: &[u8]) -> Result<Self> {
         if seed.len() != SEEDBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "seed must be exactly {} bytes",
-                SEEDBYTES
+                "seed must be exactly {SEEDBYTES} bytes"
             )));
         }
 
@@ -657,8 +652,7 @@ pub fn decrypt_afternm(
 ) -> Result<Vec<u8>> {
     if ciphertext.len() < MACBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "ciphertext must be at least {} bytes",
-            MACBYTES
+            "ciphertext must be at least {MACBYTES} bytes"
         )));
     }
 
@@ -764,8 +758,7 @@ pub fn decrypt(
 ) -> Result<Vec<u8>> {
     if ciphertext.len() < MACBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "ciphertext must be at least {} bytes",
-            MACBYTES
+            "ciphertext must be at least {MACBYTES} bytes"
         )));
     }
 
@@ -816,16 +809,14 @@ pub fn encrypt_nacl(
 ) -> Result<Vec<u8>> {
     if padded_message.len() < ZEROBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "padded message must be at least {} bytes",
-            ZEROBYTES
+            "padded message must be at least {ZEROBYTES} bytes"
         )));
     }
 
     // Verify that the first ZEROBYTES bytes of the message are all 0
     if padded_message.iter().take(ZEROBYTES).any(|&byte| byte != 0) {
         return Err(SodiumError::InvalidInput(format!(
-            "first {} bytes of padded message must be zero",
-            ZEROBYTES
+            "first {ZEROBYTES} bytes of padded message must be zero"
         )));
     }
 
@@ -870,8 +861,7 @@ pub fn decrypt_nacl(
 ) -> Result<Vec<u8>> {
     if padded_ciphertext.len() < BOXZEROBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "padded ciphertext must be at least {} bytes",
-            BOXZEROBYTES
+            "padded ciphertext must be at least {BOXZEROBYTES} bytes"
         )));
     }
 
@@ -882,8 +872,7 @@ pub fn decrypt_nacl(
         .any(|&byte| byte != 0)
     {
         return Err(SodiumError::InvalidInput(format!(
-            "first {} bytes of padded ciphertext must be zero",
-            BOXZEROBYTES
+            "first {BOXZEROBYTES} bytes of padded ciphertext must be zero"
         )));
     }
 
@@ -926,16 +915,14 @@ pub fn encrypt_nacl_afternm(
 ) -> Result<Vec<u8>> {
     if padded_message.len() < ZEROBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "padded message must be at least {} bytes",
-            ZEROBYTES
+            "padded message must be at least {ZEROBYTES} bytes"
         )));
     }
 
     // Verify that the first ZEROBYTES bytes of the message are all 0
     if padded_message.iter().take(ZEROBYTES).any(|&byte| byte != 0) {
         return Err(SodiumError::InvalidInput(format!(
-            "first {} bytes of padded message must be zero",
-            ZEROBYTES
+            "first {ZEROBYTES} bytes of padded message must be zero"
         )));
     }
 
@@ -977,8 +964,7 @@ pub fn decrypt_nacl_afternm(
 ) -> Result<Vec<u8>> {
     if padded_ciphertext.len() < BOXZEROBYTES {
         return Err(SodiumError::InvalidInput(format!(
-            "padded ciphertext must be at least {} bytes",
-            BOXZEROBYTES
+            "padded ciphertext must be at least {BOXZEROBYTES} bytes"
         )));
     }
 
@@ -989,8 +975,7 @@ pub fn decrypt_nacl_afternm(
         .any(|&byte| byte != 0)
     {
         return Err(SodiumError::InvalidInput(format!(
-            "first {} bytes of padded ciphertext must be zero",
-            BOXZEROBYTES
+            "first {BOXZEROBYTES} bytes of padded ciphertext must be zero"
         )));
     }
 

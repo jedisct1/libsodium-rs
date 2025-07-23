@@ -138,6 +138,6 @@ pub mod version;
 #[ctor::ctor]
 fn initialize() {
     if let Err(e) = ensure_init() {
-        panic!("Failed to initialize libsodium: {}", e);
+        panic!("Failed to initialize libsodium: {e}");
     }
 }

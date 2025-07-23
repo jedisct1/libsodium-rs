@@ -120,8 +120,7 @@ impl Nonce {
     pub fn try_from_slice(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != NONCEBYTES {
             return Err(SodiumError::InvalidNonce(format!(
-                "nonce must be exactly {} bytes",
-                NONCEBYTES
+                "nonce must be exactly {NONCEBYTES} bytes"
             )));
         }
 
@@ -184,8 +183,7 @@ impl PublicKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != PUBLICKEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "public key must be exactly {} bytes",
-                PUBLICKEYBYTES
+                "public key must be exactly {PUBLICKEYBYTES} bytes"
             )));
         }
 
@@ -235,8 +233,7 @@ impl SecretKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != SECRETKEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "secret key must be exactly {} bytes",
-                SECRETKEYBYTES
+                "secret key must be exactly {SECRETKEYBYTES} bytes"
             )));
         }
 
@@ -337,8 +334,7 @@ impl KeyPair {
     pub fn from_seed(seed: &[u8]) -> Result<Self> {
         if seed.len() != SEEDBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "seed must be exactly {} bytes",
-                SEEDBYTES
+                "seed must be exactly {SEEDBYTES} bytes"
             )));
         }
 

@@ -33,21 +33,21 @@ fn main() {
     for &size in &data_sizes {
         let data = random::bytes(size);
 
-        let bench_name = format!("Box encrypt {} bytes", size);
+        let bench_name = format!("Box encrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_box::seal(&data, nonce, &bob_pk, &alice_sk).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         let ciphertext = crypto_box::seal(&data, nonce, &bob_pk, &alice_sk).unwrap();
-        let bench_name = format!("Box decrypt {} bytes", size);
+        let bench_name = format!("Box decrypt {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_box::open(&ciphertext, nonce, &alice_pk, &bob_sk).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 }

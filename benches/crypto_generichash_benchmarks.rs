@@ -25,31 +25,31 @@ fn main() {
         let data = random::bytes(size);
 
         // Default output size (32 bytes)
-        let bench_name = format!("BLAKE2b hash {} bytes (default size)", size);
+        let bench_name = format!("BLAKE2b hash {size} bytes (default size)");
         let bench_result = bench.run(&options, || {
             crypto_generichash::generichash(&data, None, crypto_generichash::BYTES).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         // Minimum output size (16 bytes)
-        let bench_name = format!("BLAKE2b hash {} bytes (min size)", size);
+        let bench_name = format!("BLAKE2b hash {size} bytes (min size)");
         let bench_result = bench.run(&options, || {
             crypto_generichash::generichash(&data, None, crypto_generichash::BYTES_MIN).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         // Maximum output size (64 bytes)
-        let bench_name = format!("BLAKE2b hash {} bytes (max size)", size);
+        let bench_name = format!("BLAKE2b hash {size} bytes (max size)");
         let bench_result = bench.run(&options, || {
             crypto_generichash::generichash(&data, None, crypto_generichash::BYTES_MAX).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     // BLAKE2b hash with key
@@ -60,23 +60,23 @@ fn main() {
         let data = random::bytes(size);
 
         // Default output size (32 bytes)
-        let bench_name = format!("BLAKE2b keyed hash {} bytes (default size)", size);
+        let bench_name = format!("BLAKE2b keyed hash {size} bytes (default size)");
         let bench_result = bench.run(&options, || {
             crypto_generichash::generichash(&data, Some(&key), crypto_generichash::BYTES).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         // Maximum output size (64 bytes)
-        let bench_name = format!("BLAKE2b keyed hash {} bytes (max size)", size);
+        let bench_name = format!("BLAKE2b keyed hash {size} bytes (max size)");
         let bench_result = bench.run(&options, || {
             crypto_generichash::generichash(&data, Some(&key), crypto_generichash::BYTES_MAX)
                 .unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     // BLAKE2b incremental hashing
@@ -88,16 +88,16 @@ fn main() {
         let second_half = &data[half_size..];
 
         // Single-pass hashing (for comparison)
-        let bench_name = format!("BLAKE2b single-pass hash {} bytes", size);
+        let bench_name = format!("BLAKE2b single-pass hash {size} bytes");
         let bench_result = bench.run(&options, || {
             crypto_generichash::generichash(&data, None, crypto_generichash::BYTES).unwrap()
         });
         let single_pass_ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, single_pass_ops_per_sec);
+        println!("{bench_name}: {single_pass_ops_per_sec:.2} ops/sec");
 
         // Incremental hashing
-        let bench_name = format!("BLAKE2b incremental hash {} bytes (2 parts)", size);
+        let bench_name = format!("BLAKE2b incremental hash {size} bytes (2 parts)");
         let bench_result = bench.run(&options, || {
             let mut state =
                 crypto_generichash::State::new(None, crypto_generichash::BYTES).unwrap();
@@ -107,11 +107,11 @@ fn main() {
         });
         let incremental_ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, incremental_ops_per_sec);
+        println!("{bench_name}: {incremental_ops_per_sec:.2} ops/sec");
 
         // Calculate overhead percentage
         let overhead_percent =
             ((single_pass_ops_per_sec - incremental_ops_per_sec) / single_pass_ops_per_sec) * 100.0;
-        println!("Incremental overhead: {:.2}%", overhead_percent);
+        println!("Incremental overhead: {overhead_percent:.2}%");
     }
 }

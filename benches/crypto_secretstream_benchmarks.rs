@@ -25,19 +25,19 @@ fn main() {
         let key = xchacha20poly1305::Key::generate();
 
         // Benchmark initialization
-        let bench_name = format!("SecretStream init_push {} bytes", size);
+        let bench_name = format!("SecretStream init_push {size} bytes");
         let bench_result = bench.run(&options, || {
             xchacha20poly1305::PushState::init_push(&key).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         // Create a push state for encryption benchmarks
         let (mut push_state, _header) = xchacha20poly1305::PushState::init_push(&key).unwrap();
 
         // Benchmark encryption
-        let bench_name = format!("SecretStream push {} bytes", size);
+        let bench_name = format!("SecretStream push {size} bytes");
         let bench_result = bench.run(&options, || {
             push_state
                 .push(&data, None, xchacha20poly1305::TAG_MESSAGE)
@@ -45,7 +45,7 @@ fn main() {
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         // For decryption benchmarks, we need a fresh push state and header for each test
         // to ensure proper synchronization between encryption and decryption
@@ -55,23 +55,23 @@ fn main() {
             .unwrap();
 
         // Benchmark pull state initialization
-        let bench_name = format!("SecretStream init_pull {} bytes", size);
+        let bench_name = format!("SecretStream init_pull {size} bytes");
         let bench_result = bench.run(&options, || {
             xchacha20poly1305::PullState::init_pull(&header, &key).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         // For the decryption benchmark, we need to create a new pull state for each iteration
         // since the pull operation modifies the state
-        let bench_name = format!("SecretStream pull {} bytes", size);
+        let bench_name = format!("SecretStream pull {size} bytes");
         let bench_result = bench.run(&options, || {
             let mut pull_state = xchacha20poly1305::PullState::init_pull(&header, &key).unwrap();
             pull_state.pull(&ciphertext, None).unwrap()
         });
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 }

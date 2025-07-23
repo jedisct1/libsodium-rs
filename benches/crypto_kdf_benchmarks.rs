@@ -31,7 +31,7 @@ fn main() {
         crypto_kdf::blake2b::derive_from_key(32, 1, context, &master_key).unwrap()
     });
     let ops_per_sec = 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-    println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+    println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
     // HKDF-SHA256
     println!("\n=== HKDF-SHA256 Benchmarks ===");
@@ -47,7 +47,7 @@ fn main() {
         crypto_kdf::hkdf::sha256::expand(32, info, &prk).unwrap()
     });
     let ops_per_sec = 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-    println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+    println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
     // HKDF-SHA512
     println!("\n=== HKDF-SHA512 Benchmarks ===");
@@ -59,7 +59,7 @@ fn main() {
         crypto_kdf::hkdf::sha512::expand(32, info, &prk).unwrap()
     });
     let ops_per_sec = 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-    println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+    println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
     // Standard KDF
     println!("\n=== Standard KDF Benchmarks ===");
@@ -70,5 +70,5 @@ fn main() {
         crypto_kdf::derive_from_key(32, 1, context, &master_key).unwrap()
     });
     let ops_per_sec = 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-    println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+    println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 }

@@ -193,16 +193,14 @@ impl State {
     pub fn new(key: Option<&[u8]>, output_len: usize) -> Result<Self> {
         if !(BYTES_MIN..=BYTES_MAX).contains(&output_len) {
             return Err(SodiumError::InvalidInput(format!(
-                "Output length must be between {} and {} bytes",
-                BYTES_MIN, BYTES_MAX
+                "Output length must be between {BYTES_MIN} and {BYTES_MAX} bytes"
             )));
         }
 
         if let Some(key) = key {
             if key.len() < KEYBYTES_MIN || key.len() > KEYBYTES_MAX {
                 return Err(SodiumError::InvalidInput(format!(
-                    "Key length must be between {} and {} bytes",
-                    KEYBYTES_MIN, KEYBYTES_MAX
+                    "Key length must be between {KEYBYTES_MIN} and {KEYBYTES_MAX} bytes"
                 )));
             }
         }
@@ -393,8 +391,7 @@ pub fn generichash(input: &[u8], key: Option<&[u8]>, output_len: usize) -> Resul
     // Validate output length
     if !(BYTES_MIN..=BYTES_MAX).contains(&output_len) {
         return Err(SodiumError::InvalidInput(format!(
-            "Output length must be between {} and {}",
-            BYTES_MIN, BYTES_MAX
+            "Output length must be between {BYTES_MIN} and {BYTES_MAX}"
         )));
     }
 
@@ -402,8 +399,7 @@ pub fn generichash(input: &[u8], key: Option<&[u8]>, output_len: usize) -> Resul
     if let Some(key) = key {
         if key.len() < KEYBYTES_MIN || key.len() > KEYBYTES_MAX {
             return Err(SodiumError::InvalidKey(format!(
-                "Key length must be between {} and {}",
-                KEYBYTES_MIN, KEYBYTES_MAX
+                "Key length must be between {KEYBYTES_MIN} and {KEYBYTES_MAX}"
             )));
         }
     }

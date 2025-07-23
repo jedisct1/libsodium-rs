@@ -24,21 +24,21 @@ fn main() {
     for &size in &data_sizes {
         let data = random::bytes(size);
         let key = hmacsha256::Key::generate();
-        let bench_name = format!("HMAC-SHA-256 {} bytes", size);
+        let bench_name = format!("HMAC-SHA-256 {size} bytes");
         let bench_result = bench.run(&options, || hmacsha256::auth(&data, &key).unwrap());
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 
     println!("\n=== HMAC-SHA-512 Benchmarks ===");
     for &size in &data_sizes {
         let data = random::bytes(size);
         let key = hmacsha512::Key::generate();
-        let bench_name = format!("HMAC-SHA-512 {} bytes", size);
+        let bench_name = format!("HMAC-SHA-512 {size} bytes");
         let bench_result = bench.run(&options, || hmacsha512::auth(&data, &key).unwrap());
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 }

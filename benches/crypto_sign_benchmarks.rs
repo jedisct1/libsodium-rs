@@ -28,17 +28,17 @@ fn main() {
     for &size in &data_sizes {
         let data = random::bytes(size);
 
-        let bench_name = format!("Ed25519 sign {} bytes", size);
+        let bench_name = format!("Ed25519 sign {size} bytes");
         let bench_result = bench.run(&options, || crypto_sign::sign(&data, &sk).unwrap());
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
         let signed_msg = crypto_sign::sign(&data, &sk).unwrap();
-        let bench_name = format!("Ed25519 verify {} bytes", size);
+        let bench_name = format!("Ed25519 verify {size} bytes");
         let bench_result = bench.run(&options, || crypto_sign::verify(&signed_msg, &pk).unwrap());
         let ops_per_sec =
             1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-        println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+        println!("{bench_name}: {ops_per_sec:.2} ops/sec");
     }
 }

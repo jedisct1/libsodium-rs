@@ -47,7 +47,7 @@ fn main() {
         .unwrap()
     });
     let ops_per_sec = 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-    println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+    println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
     // Argon2i
     println!("\n=== Argon2i Benchmarks ===");
@@ -68,7 +68,7 @@ fn main() {
         .unwrap()
     });
     let ops_per_sec = 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-    println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+    println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 
     // Scrypt
     println!("\n=== Scrypt Benchmarks ===");
@@ -89,5 +89,5 @@ fn main() {
         .unwrap()
     });
     let ops_per_sec = 1_000_000_000.0 / (bench_result.as_ns() as f64 / options.iterations as f64);
-    println!("{}: {:.2} ops/sec", bench_name, ops_per_sec);
+    println!("{bench_name}: {ops_per_sec:.2} ops/sec");
 }

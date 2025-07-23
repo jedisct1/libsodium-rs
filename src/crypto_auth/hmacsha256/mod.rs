@@ -59,8 +59,7 @@ impl Key {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != KEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "key must be exactly {} bytes",
-                KEYBYTES
+                "key must be exactly {KEYBYTES} bytes"
             )));
         }
 

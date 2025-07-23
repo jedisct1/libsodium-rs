@@ -253,8 +253,7 @@ impl PublicKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != PUBLICKEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "public key must be exactly {} bytes",
-                PUBLICKEYBYTES
+                "public key must be exactly {PUBLICKEYBYTES} bytes"
             )));
         }
 
@@ -362,8 +361,7 @@ impl SecretKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != SECRETKEYBYTES {
             return Err(SodiumError::InvalidInput(format!(
-                "secret key must be exactly {} bytes",
-                SECRETKEYBYTES
+                "secret key must be exactly {SECRETKEYBYTES} bytes"
             )));
         }
 
