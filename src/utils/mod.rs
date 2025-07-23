@@ -788,3 +788,38 @@ pub mod vec_utils;
 
 // Re-export SecureVec and secure_vec from vec_utils
 pub use vec_utils::{secure_vec, SecureVec};
+
+/// Implements basic conversion traits from and into array and slices for the given _type_.
+///
+/// The _type_ must implement `from_bytes` and `as_bytes`.
+macro_rules! impl_bytes_method {
+    ($ty:ident, $size:ident) => {
+        impl AsRef<[u8]> for $ty {
+            fn as_ref(&self) -> &[u8] {
+                self.as_bytes()
+            }
+        }
+
+        impl TryFrom<&[u8]> for $ty {
+            type Error = crate::SodiumError;
+
+            fn try_from(value: &[u8]) -> crate::Result<Self> {
+                Self::from_bytes(value)
+            }
+        }
+
+        impl From<[u8; $size]> for $ty {
+            fn from(value: [u8; $size]) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<$ty> for [u8; $size] {
+            fn from(value: $ty) -> Self {
+                value.0
+            }
+        }
+    };
+}
+
+pub(crate) use impl_bytes_method;
