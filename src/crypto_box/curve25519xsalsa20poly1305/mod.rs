@@ -998,6 +998,105 @@ mod tests {
     // Random is used in other test functions
 
     #[test]
+    fn public_key_from_bytes() {
+        let mut raw_pk = [0u8; PUBLICKEYBYTES];
+        crate::random::fill_bytes(&mut raw_pk);
+
+        PublicKey::from_bytes(raw_pk.as_slice()).unwrap();
+        PublicKey::try_from(raw_pk.as_slice()).unwrap();
+
+        // Test error when slice is too big
+        let too_big_pk = [0u8; PUBLICKEYBYTES + 1];
+
+        assert!(matches!(
+            PublicKey::from_bytes(too_big_pk.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+        assert!(matches!(
+            PublicKey::try_from(too_big_pk.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+
+        // Test error when slice is too small
+        let too_small_pk = [0u8; PUBLICKEYBYTES - 1];
+
+        assert!(matches!(
+            PublicKey::from_bytes(too_small_pk.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+        assert!(matches!(
+            PublicKey::try_from(too_small_pk.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+    }
+
+    #[test]
+    fn secret_key_from_bytes() {
+        let mut raw_sk = [0u8; SECRETKEYBYTES];
+        crate::random::fill_bytes(&mut raw_sk);
+
+        SecretKey::from_bytes(raw_sk.as_slice()).unwrap();
+        SecretKey::try_from(raw_sk.as_slice()).unwrap();
+
+        // Test error when slice is too big
+        let too_big_sk = [0u8; SECRETKEYBYTES + 1];
+
+        assert!(matches!(
+            SecretKey::from_bytes(too_big_sk.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+        assert!(matches!(
+            SecretKey::try_from(too_big_sk.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+
+        // Test error when slice is too small
+        let too_small_sk = [0u8; SECRETKEYBYTES - 1];
+
+        assert!(matches!(
+            SecretKey::from_bytes(too_small_sk.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+        assert!(matches!(
+            SecretKey::try_from(too_small_sk.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+    }
+
+    #[test]
+    fn precomputed_key_from_bytes() {
+        let mut raw_shared_key = [0u8; BEFORENMBYTES];
+        crate::random::fill_bytes(&mut raw_shared_key);
+
+        PrecomputedKey::from_bytes(raw_shared_key.as_slice()).unwrap();
+        PrecomputedKey::try_from(raw_shared_key.as_slice()).unwrap();
+
+        // Test error when slice is too big
+        let too_big_shared_key = [0u8; BEFORENMBYTES + 1];
+
+        assert!(matches!(
+            PrecomputedKey::from_bytes(too_big_shared_key.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+        assert!(matches!(
+            PrecomputedKey::try_from(too_big_shared_key.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+
+        // Test error when slice is too small
+        let too_small_shared_key = [0u8; BEFORENMBYTES - 1];
+
+        assert!(matches!(
+            PrecomputedKey::from_bytes(too_small_shared_key.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+        assert!(matches!(
+            PrecomputedKey::try_from(too_small_shared_key.as_slice()).unwrap_err(),
+            SodiumError::InvalidInput(_)
+        ));
+    }
+
+    #[test]
     fn test_keypair_generation() {
         let keypair = KeyPair::generate().unwrap();
         assert_eq!(keypair.public_key.as_bytes().len(), PUBLICKEYBYTES);
