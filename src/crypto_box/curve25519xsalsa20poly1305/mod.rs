@@ -169,8 +169,6 @@ pub const BOXZEROBYTES: usize =
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PublicKey([u8; PUBLICKEYBYTES]);
 
-crate::utils::impl_bytes_method!(PublicKey, PUBLICKEYBYTES);
-
 impl PublicKey {
     /// Create a public key from bytes
     ///
@@ -207,11 +205,35 @@ impl AsRef<PublicKey> for PublicKey {
     }
 }
 
+impl AsRef<[u8]> for PublicKey {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for PublicKey {
+    type Error = SodiumError;
+
+    fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(value)
+    }
+}
+
+impl From<[u8; PUBLICKEYBYTES]> for PublicKey {
+    fn from(value: [u8; PUBLICKEYBYTES]) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PublicKey> for [u8; PUBLICKEYBYTES] {
+    fn from(value: PublicKey) -> Self {
+        value.0
+    }
+}
+
 /// A secret key for curve25519xsalsa20poly1305 encryption
 #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
 pub struct SecretKey([u8; SECRETKEYBYTES]);
-
-crate::utils::impl_bytes_method!(SecretKey, SECRETKEYBYTES);
 
 impl SecretKey {
     /// Create a secret key from bytes
@@ -249,11 +271,35 @@ impl AsRef<SecretKey> for SecretKey {
     }
 }
 
+impl AsRef<[u8]> for SecretKey {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for SecretKey {
+    type Error = SodiumError;
+
+    fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(value)
+    }
+}
+
+impl From<[u8; SECRETKEYBYTES]> for SecretKey {
+    fn from(value: [u8; SECRETKEYBYTES]) -> Self {
+        Self(value)
+    }
+}
+
+impl From<SecretKey> for [u8; SECRETKEYBYTES] {
+    fn from(value: SecretKey) -> Self {
+        value.0
+    }
+}
+
 /// A precomputed shared key for curve25519xsalsa20poly1305 encryption
 #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
 pub struct PrecomputedKey([u8; BEFORENMBYTES]);
-
-crate::utils::impl_bytes_method!(PrecomputedKey, BEFORENMBYTES);
 
 impl PrecomputedKey {
     /// Create a precomputed key from bytes
@@ -288,6 +334,32 @@ impl PrecomputedKey {
 impl AsRef<PrecomputedKey> for PrecomputedKey {
     fn as_ref(&self) -> &PrecomputedKey {
         self
+    }
+}
+
+impl AsRef<[u8]> for PrecomputedKey {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for PrecomputedKey {
+    type Error = SodiumError;
+
+    fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(value)
+    }
+}
+
+impl From<[u8; BEFORENMBYTES]> for PrecomputedKey {
+    fn from(value: [u8; BEFORENMBYTES]) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PrecomputedKey> for [u8; BEFORENMBYTES] {
+    fn from(value: PrecomputedKey) -> Self {
+        value.0
     }
 }
 
