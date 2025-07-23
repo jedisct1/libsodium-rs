@@ -1234,6 +1234,63 @@ pub fn ed25519_sk_to_curve25519(ed25519_sk: &SecretKey) -> Result<[u8; 32]> {
     Ok(curve25519_sk)
 }
 
+/// Convert an Ed25519's [`SecretKey`] to an Ed25519's [`PublicKey`]
+///
+/// This function converts an Ed25519 secret key (used for signatures) to an Ed25519
+/// public key (used for signature verification). This allows to retrieve a public key
+/// in case the initial key pair was discarded
+///
+/// ## Example
+///
+/// ```rust
+/// use libsodium_rs as sodium;
+/// use sodium::crypto_sign;
+/// use sodium::ensure_init;
+///
+/// // Initialize libsodium
+/// ensure_init().expect("Failed to initialize libsodium");
+///
+/// // Generate an Ed25519 keypair
+/// let keypair = crypto_sign::KeyPair::generate().unwrap();
+/// let ed25519_sk = keypair.secret_key;
+///
+/// // Convert the Ed25519 secret key to a public key
+/// let ed25519_pk = crypto_sign::ed25519_sk_to_pk(&ed25519_sk).unwrap();
+///
+/// // We get the same public key as in the initiale keypair
+/// assert_eq!(ed25519_pk, keypair.public_key.as_bytes());
+/// ```
+///
+/// # Arguments
+///
+/// * `ed25519_sk` - The Ed25519 secret key to convert
+///
+/// # Returns
+///
+/// * `Result<[u8; PUBLICKEYBYTES]>` - The converted Ed25519 public key or an error
+///
+/// # Errors
+///
+/// Returns an error if the conversion fails (extremely rare)
+pub fn ed25519_sk_to_pk(ed25519_sk: &SecretKey) -> Result<[u8; PUBLICKEYBYTES]> {
+    let mut ed25519_pk = [0u8; PUBLICKEYBYTES];
+
+    let result = unsafe {
+        libsodium_sys::crypto_sign_ed25519_sk_to_pk(
+            ed25519_pk.as_mut_ptr(),
+            ed25519_sk.as_bytes().as_ptr(),
+        )
+    };
+
+    if result != 0 {
+        return Err(SodiumError::OperationError(
+            "Failed to convert Ed25519 secret key to public key".into(),
+        ));
+    }
+
+    Ok(ed25519_pk)
+}
+
 /// State for multi-part (streaming) signature creation and verification
 ///
 /// This struct is used for creating or verifying signatures when the message is too large
