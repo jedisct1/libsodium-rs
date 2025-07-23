@@ -196,6 +196,26 @@ impl AsRef<[u8]> for Nonce {
     }
 }
 
+impl TryFrom<&[u8]> for Nonce {
+    type Error = crate::SodiumError;
+
+    fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::try_from_slice(value)
+    }
+}
+
+impl From<[u8; NONCEBYTES]> for Nonce {
+    fn from(bytes: [u8; NONCEBYTES]) -> Self {
+        Self::from_bytes(bytes)
+    }
+}
+
+impl From<Nonce> for [u8; NONCEBYTES] {
+    fn from(nonce: Nonce) -> Self {
+        nonce.0
+    }
+}
+
 /// Number of bytes in a MAC (message authentication code) (16)
 ///
 /// This is the size of the authentication tag added to each encrypted message.
@@ -361,6 +381,32 @@ impl Key {
     /// ```
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for Key {
+    type Error = crate::SodiumError;
+
+    fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(value)
+    }
+}
+
+impl From<[u8; KEYBYTES]> for Key {
+    fn from(bytes: [u8; KEYBYTES]) -> Self {
+        Key(bytes)
+    }
+}
+
+impl From<Key> for [u8; KEYBYTES] {
+    fn from(key: Key) -> Self {
+        key.0
     }
 }
 
@@ -755,5 +801,50 @@ mod tests {
 
         // Decryption should fail
         assert!(decrypt(&ciphertext, &nonce, &key).is_err());
+    }
+
+    #[test]
+    fn test_nonce_trait_implementations() {
+        // Test TryFrom<&[u8]>
+        let nonce_bytes = [0x42; NONCEBYTES];
+        let nonce = Nonce::try_from(&nonce_bytes[..]).unwrap();
+        assert_eq!(nonce.as_ref(), &nonce_bytes);
+
+        // Test with wrong size
+        let wrong_size = [0x42; NONCEBYTES - 1];
+        assert!(Nonce::try_from(&wrong_size[..]).is_err());
+
+        // Test From<[u8; NONCEBYTES]>
+        let nonce2 = Nonce::from(nonce_bytes);
+        assert_eq!(nonce2.as_ref(), &nonce_bytes);
+
+        // Test From<Nonce> for [u8; NONCEBYTES]
+        let bytes: [u8; NONCEBYTES] = nonce2.into();
+        assert_eq!(bytes, nonce_bytes);
+    }
+
+    #[test]
+    fn test_key_trait_implementations() {
+        // Test AsRef<[u8]>
+        let key = Key::generate();
+        let key_ref: &[u8] = key.as_ref();
+        assert_eq!(key_ref.len(), KEYBYTES);
+
+        // Test TryFrom<&[u8]>
+        let key_bytes = [0x42; KEYBYTES];
+        let key2 = Key::try_from(&key_bytes[..]).unwrap();
+        assert_eq!(key2.as_ref(), &key_bytes);
+
+        // Test with wrong size
+        let wrong_size = [0x42; KEYBYTES - 1];
+        assert!(Key::try_from(&wrong_size[..]).is_err());
+
+        // Test From<[u8; KEYBYTES]>
+        let key3 = Key::from(key_bytes);
+        assert_eq!(key3.as_ref(), &key_bytes);
+
+        // Test From<Key> for [u8; KEYBYTES]
+        let bytes: [u8; KEYBYTES] = key3.into();
+        assert_eq!(bytes, key_bytes);
     }
 }

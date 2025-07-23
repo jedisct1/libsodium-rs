@@ -295,6 +295,32 @@ impl PublicKey {
     }
 }
 
+impl AsRef<[u8]> for PublicKey {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl TryFrom<&[u8]> for PublicKey {
+    type Error = SodiumError;
+
+    fn try_from(bytes: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(bytes)
+    }
+}
+
+impl From<[u8; PUBLICKEYBYTES]> for PublicKey {
+    fn from(bytes: [u8; PUBLICKEYBYTES]) -> Self {
+        PublicKey(bytes)
+    }
+}
+
+impl From<PublicKey> for [u8; PUBLICKEYBYTES] {
+    fn from(key: PublicKey) -> Self {
+        key.0
+    }
+}
+
 impl SecretKey {
     /// Create a secret key from existing bytes
     ///
@@ -380,6 +406,32 @@ impl SecretKey {
     /// ```
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl AsRef<[u8]> for SecretKey {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl TryFrom<&[u8]> for SecretKey {
+    type Error = SodiumError;
+
+    fn try_from(bytes: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(bytes)
+    }
+}
+
+impl From<[u8; SECRETKEYBYTES]> for SecretKey {
+    fn from(bytes: [u8; SECRETKEYBYTES]) -> Self {
+        SecretKey(bytes)
+    }
+}
+
+impl From<SecretKey> for [u8; SECRETKEYBYTES] {
+    fn from(key: SecretKey) -> Self {
+        key.0
     }
 }
 
@@ -675,5 +727,127 @@ mod tests {
         // Verify that the session keys match (client_tx = server_rx and client_rx = server_tx)
         assert_eq!(client_keys.tx, server_keys.rx);
         assert_eq!(client_keys.rx, server_keys.tx);
+    }
+
+    #[test]
+    fn test_public_key_asref() {
+        let keypair = KeyPair::generate().unwrap();
+        let public_key = keypair.public_key;
+        let bytes_ref: &[u8] = public_key.as_ref();
+        assert_eq!(bytes_ref.len(), PUBLICKEYBYTES);
+        assert_eq!(bytes_ref, public_key.as_bytes());
+    }
+
+    #[test]
+    fn test_public_key_try_from_slice() {
+        // Valid case
+        let bytes = [42u8; PUBLICKEYBYTES];
+        let public_key = PublicKey::try_from(&bytes[..]).unwrap();
+        assert_eq!(public_key.as_bytes(), &bytes);
+
+        // Invalid case - wrong length
+        let short_bytes = [42u8; PUBLICKEYBYTES - 1];
+        assert!(PublicKey::try_from(&short_bytes[..]).is_err());
+
+        let long_bytes = [42u8; PUBLICKEYBYTES + 1];
+        assert!(PublicKey::try_from(&long_bytes[..]).is_err());
+    }
+
+    #[test]
+    fn test_public_key_from_array() {
+        let bytes = [42u8; PUBLICKEYBYTES];
+        let public_key = PublicKey::from(bytes);
+        assert_eq!(public_key.as_bytes(), &bytes);
+    }
+
+    #[test]
+    fn test_public_key_into_array() {
+        let bytes = [42u8; PUBLICKEYBYTES];
+        let public_key = PublicKey::from(bytes);
+        let array: [u8; PUBLICKEYBYTES] = public_key.into();
+        assert_eq!(array, bytes);
+    }
+
+    #[test]
+    fn test_secret_key_asref() {
+        let keypair = KeyPair::generate().unwrap();
+        let secret_key = keypair.secret_key;
+        let bytes_ref: &[u8] = secret_key.as_ref();
+        assert_eq!(bytes_ref.len(), SECRETKEYBYTES);
+        assert_eq!(bytes_ref, secret_key.as_bytes());
+    }
+
+    #[test]
+    fn test_secret_key_try_from_slice() {
+        // Valid case
+        let bytes = [42u8; SECRETKEYBYTES];
+        let secret_key = SecretKey::try_from(&bytes[..]).unwrap();
+        assert_eq!(secret_key.as_bytes(), &bytes);
+
+        // Invalid case - wrong length
+        let short_bytes = [42u8; SECRETKEYBYTES - 1];
+        assert!(SecretKey::try_from(&short_bytes[..]).is_err());
+
+        let long_bytes = [42u8; SECRETKEYBYTES + 1];
+        assert!(SecretKey::try_from(&long_bytes[..]).is_err());
+    }
+
+    #[test]
+    fn test_secret_key_from_array() {
+        let bytes = [42u8; SECRETKEYBYTES];
+        let secret_key = SecretKey::from(bytes);
+        assert_eq!(secret_key.as_bytes(), &bytes);
+    }
+
+    #[test]
+    fn test_secret_key_into_array() {
+        let bytes = [42u8; SECRETKEYBYTES];
+        let secret_key = SecretKey::from(bytes);
+        let array: [u8; SECRETKEYBYTES] = secret_key.into();
+        assert_eq!(array, bytes);
+    }
+
+    #[test]
+    fn test_secret_key_zeroization() {
+        let bytes = [42u8; SECRETKEYBYTES];
+        let secret_key = SecretKey::from(bytes);
+
+        // Convert to array and drop the original
+        let array: [u8; SECRETKEYBYTES] = secret_key.into();
+        assert_eq!(array, bytes);
+
+        // The original secret_key is now dropped and should be zeroized
+        // (We can't directly test this as the memory is freed, but the
+        // ZeroizeOnDrop trait ensures it happens)
+    }
+
+    #[test]
+    fn test_roundtrip_conversions() {
+        // Test PublicKey roundtrip
+        let keypair = KeyPair::generate().unwrap();
+        let pk = keypair.public_key;
+        let pk_bytes = pk.as_bytes().to_vec();
+
+        // Via TryFrom
+        let pk2 = PublicKey::try_from(&pk_bytes[..]).unwrap();
+        assert_eq!(pk2.as_bytes(), pk_bytes);
+
+        // Via From array
+        let pk_array: [u8; PUBLICKEYBYTES] = pk2.into();
+        let pk3 = PublicKey::from(pk_array);
+        assert_eq!(pk3.as_bytes(), pk_bytes);
+
+        // Test SecretKey roundtrip
+        let sk = keypair.secret_key;
+        let sk_bytes = sk.as_bytes().to_vec();
+
+        // Via TryFrom
+        let sk2 = SecretKey::try_from(&sk_bytes[..]).unwrap();
+        assert_eq!(sk2.as_bytes(), sk_bytes);
+
+        // Via From array
+        let sk_array: [u8; SECRETKEYBYTES] = sk2.into();
+        let sk3 = SecretKey::from(sk_array);
+        assert_eq!(sk3.as_bytes(), sk_bytes);
     }
 }

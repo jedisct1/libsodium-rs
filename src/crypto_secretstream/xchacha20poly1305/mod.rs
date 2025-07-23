@@ -52,6 +52,7 @@
 
 use crate::{Result, SodiumError};
 use libc;
+use std::convert::TryFrom;
 
 /// Number of bytes in a key (32 bytes)
 pub const KEYBYTES: usize = libsodium_sys::crypto_secretstream_xchacha20poly1305_KEYBYTES as usize;
@@ -170,6 +171,32 @@ impl Key {
     /// * `&[u8]` - Reference to the key bytes
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for Key {
+    type Error = SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(slice)
+    }
+}
+
+impl From<[u8; KEYBYTES]> for Key {
+    fn from(bytes: [u8; KEYBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<Key> for [u8; KEYBYTES] {
+    fn from(key: Key) -> [u8; KEYBYTES] {
+        key.0
     }
 }
 
@@ -953,5 +980,31 @@ mod tests {
         // Verify the decrypted message and tag
         assert_eq!(&decrypted, message);
         assert_eq!(tag, TAG_PUSH);
+    }
+
+    #[test]
+    fn test_key_traits() {
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; KEYBYTES];
+        let key = Key::try_from(&bytes[..]).unwrap();
+        assert_eq!(key.as_bytes(), &bytes);
+
+        // Test invalid length
+        let invalid_bytes = [0x42; KEYBYTES - 1];
+        assert!(Key::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; KEYBYTES]>
+        let array = [0x43; KEYBYTES];
+        let key2 = Key::from(array);
+        assert_eq!(key2.as_bytes(), &array);
+
+        // Test From<Key> for [u8; KEYBYTES]
+        let extracted: [u8; KEYBYTES] = key2.into();
+        assert_eq!(extracted, array);
+
+        // Test AsRef<[u8]>
+        let key3 = Key::generate();
+        let slice_ref: &[u8] = key3.as_ref();
+        assert_eq!(slice_ref.len(), KEYBYTES);
     }
 }

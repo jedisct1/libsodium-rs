@@ -59,6 +59,7 @@
 
 use crate::{Result, SodiumError};
 use libc;
+use std::convert::TryFrom;
 
 /// Number of bytes in a public key
 pub const PUBLICKEYBYTES: usize =
@@ -145,6 +146,26 @@ impl AsRef<[u8]> for Nonce {
     }
 }
 
+impl TryFrom<&[u8]> for Nonce {
+    type Error = SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::try_from_slice(slice)
+    }
+}
+
+impl From<[u8; NONCEBYTES]> for Nonce {
+    fn from(bytes: [u8; NONCEBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<Nonce> for [u8; NONCEBYTES] {
+    fn from(nonce: Nonce) -> [u8; NONCEBYTES] {
+        nonce.0
+    }
+}
+
 /// Number of bytes in a MAC (message authentication code)
 pub const MACBYTES: usize = libsodium_sys::crypto_box_curve25519xchacha20poly1305_MACBYTES as usize;
 /// Number of bytes in a seed
@@ -179,6 +200,32 @@ impl PublicKey {
     }
 }
 
+impl AsRef<[u8]> for PublicKey {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for PublicKey {
+    type Error = SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(slice)
+    }
+}
+
+impl From<[u8; PUBLICKEYBYTES]> for PublicKey {
+    fn from(bytes: [u8; PUBLICKEYBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<PublicKey> for [u8; PUBLICKEYBYTES] {
+    fn from(key: PublicKey) -> [u8; PUBLICKEYBYTES] {
+        key.0
+    }
+}
+
 /// A secret key for curve25519xchacha20poly1305 encryption
 #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
 pub struct SecretKey([u8; SECRETKEYBYTES]);
@@ -201,6 +248,32 @@ impl SecretKey {
     /// Get the bytes of the secret key
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl AsRef<[u8]> for SecretKey {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for SecretKey {
+    type Error = SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(slice)
+    }
+}
+
+impl From<[u8; SECRETKEYBYTES]> for SecretKey {
+    fn from(bytes: [u8; SECRETKEYBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<SecretKey> for [u8; SECRETKEYBYTES] {
+    fn from(key: SecretKey) -> [u8; SECRETKEYBYTES] {
+        key.0
     }
 }
 
@@ -649,5 +722,83 @@ mod tests {
         let decrypted = seal_open(&sealed_box, &bob.public_key, &bob.secret_key).unwrap();
 
         assert_eq!(decrypted, message);
+    }
+
+    #[test]
+    fn test_nonce_traits() {
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; NONCEBYTES];
+        let nonce = Nonce::try_from(&bytes[..]).unwrap();
+        assert_eq!(nonce.as_bytes(), &bytes);
+
+        // Test invalid length
+        let invalid_bytes = [0x42; NONCEBYTES - 1];
+        assert!(Nonce::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; NONCEBYTES]>
+        let array = [0x43; NONCEBYTES];
+        let nonce2 = Nonce::from(array);
+        assert_eq!(nonce2.as_bytes(), &array);
+
+        // Test From<Nonce> for [u8; NONCEBYTES]
+        let extracted: [u8; NONCEBYTES] = nonce2.into();
+        assert_eq!(extracted, array);
+
+        // Test AsRef<[u8]>
+        let nonce3 = Nonce::generate();
+        let slice_ref: &[u8] = nonce3.as_ref();
+        assert_eq!(slice_ref.len(), NONCEBYTES);
+    }
+
+    #[test]
+    fn test_publickey_traits() {
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; PUBLICKEYBYTES];
+        let key = PublicKey::try_from(&bytes[..]).unwrap();
+        assert_eq!(key.as_bytes(), &bytes);
+
+        // Test invalid length
+        let invalid_bytes = [0x42; PUBLICKEYBYTES - 1];
+        assert!(PublicKey::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; PUBLICKEYBYTES]>
+        let array = [0x43; PUBLICKEYBYTES];
+        let key2 = PublicKey::from(array);
+        assert_eq!(key2.as_bytes(), &array);
+
+        // Test From<PublicKey> for [u8; PUBLICKEYBYTES]
+        let extracted: [u8; PUBLICKEYBYTES] = key2.into();
+        assert_eq!(extracted, array);
+
+        // Test AsRef<[u8]>
+        let keypair = KeyPair::generate().unwrap();
+        let slice_ref: &[u8] = keypair.public_key.as_ref();
+        assert_eq!(slice_ref.len(), PUBLICKEYBYTES);
+    }
+
+    #[test]
+    fn test_secretkey_traits() {
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; SECRETKEYBYTES];
+        let key = SecretKey::try_from(&bytes[..]).unwrap();
+        assert_eq!(key.as_bytes(), &bytes);
+
+        // Test invalid length
+        let invalid_bytes = [0x42; SECRETKEYBYTES - 1];
+        assert!(SecretKey::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; SECRETKEYBYTES]>
+        let array = [0x43; SECRETKEYBYTES];
+        let key2 = SecretKey::from(array);
+        assert_eq!(key2.as_bytes(), &array);
+
+        // Test From<SecretKey> for [u8; SECRETKEYBYTES]
+        let extracted: [u8; SECRETKEYBYTES] = key2.into();
+        assert_eq!(extracted, array);
+
+        // Test AsRef<[u8]>
+        let keypair = KeyPair::generate().unwrap();
+        let slice_ref: &[u8] = keypair.secret_key.as_ref();
+        assert_eq!(slice_ref.len(), SECRETKEYBYTES);
     }
 }

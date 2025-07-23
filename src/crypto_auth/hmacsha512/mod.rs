@@ -84,6 +84,32 @@ impl Key {
     }
 }
 
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for Key {
+    type Error = SodiumError;
+
+    fn try_from(bytes: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(bytes)
+    }
+}
+
+impl From<[u8; KEYBYTES]> for Key {
+    fn from(bytes: [u8; KEYBYTES]) -> Self {
+        Key(bytes)
+    }
+}
+
+impl From<Key> for [u8; KEYBYTES] {
+    fn from(key: Key) -> Self {
+        key.0
+    }
+}
+
 /// HMAC-SHA-512 state for incremental authentication
 pub struct State {
     state: Box<libsodium_sys::crypto_auth_hmacsha512_state>,
@@ -249,5 +275,59 @@ mod tests {
         let mut encoded = vec![0u8; mac.len() * 2]; // Hex encoding doubles the length
         let encoded = Hex::encode(&mut encoded, mac).unwrap();
         assert_eq!(std::str::from_utf8(encoded).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_key_as_ref() {
+        let key = Key::generate();
+        let bytes: &[u8] = key.as_ref();
+        assert_eq!(bytes.len(), KEYBYTES);
+        assert_eq!(bytes, key.as_bytes());
+    }
+
+    #[test]
+    fn test_key_try_from_slice() {
+        // Valid key
+        let bytes = vec![0u8; KEYBYTES];
+        let key = Key::try_from(bytes.as_slice()).unwrap();
+        assert_eq!(key.as_bytes(), &bytes[..]);
+
+        // Invalid key - too short
+        let short_bytes = vec![0u8; KEYBYTES - 1];
+        assert!(Key::try_from(short_bytes.as_slice()).is_err());
+
+        // Invalid key - too long
+        let long_bytes = vec![0u8; KEYBYTES + 1];
+        assert!(Key::try_from(long_bytes.as_slice()).is_err());
+    }
+
+    #[test]
+    fn test_key_from_array() {
+        let bytes = [42u8; KEYBYTES];
+        let key = Key::from(bytes);
+        assert_eq!(key.as_bytes(), &bytes);
+    }
+
+    #[test]
+    fn test_key_into_array() {
+        let original_bytes = [42u8; KEYBYTES];
+        let key = Key::from(original_bytes);
+        let bytes: [u8; KEYBYTES] = key.into();
+        assert_eq!(bytes, original_bytes);
+    }
+
+    #[test]
+    fn test_key_roundtrip() {
+        let original_bytes = [0x55u8; KEYBYTES];
+
+        // From array -> Key -> into array
+        let key = Key::from(original_bytes);
+        let result: [u8; KEYBYTES] = key.into();
+        assert_eq!(result, original_bytes);
+
+        // From slice -> Key -> as_ref
+        let key2 = Key::try_from(&original_bytes[..]).unwrap();
+        let slice: &[u8] = key2.as_ref();
+        assert_eq!(slice, &original_bytes[..]);
     }
 }

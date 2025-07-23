@@ -55,6 +55,7 @@
 
 use crate::{Result, SodiumError};
 use libc;
+use std::convert::TryFrom;
 
 /// Number of bytes in an authentication tag (32 bytes)
 pub const BYTES: usize = libsodium_sys::crypto_auth_BYTES as usize;
@@ -166,6 +167,32 @@ impl Key {
     }
 }
 
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for Key {
+    type Error = SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_slice(slice)
+    }
+}
+
+impl From<[u8; KEYBYTES]> for Key {
+    fn from(bytes: [u8; KEYBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<Key> for [u8; KEYBYTES] {
+    fn from(key: Key) -> [u8; KEYBYTES] {
+        key.0
+    }
+}
+
 /// An authentication tag
 ///
 /// This represents an authentication tag computed for a message using a secret key.
@@ -245,6 +272,32 @@ impl Tag {
     /// ```
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl AsRef<[u8]> for Tag {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for Tag {
+    type Error = SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_slice(slice)
+    }
+}
+
+impl From<[u8; BYTES]> for Tag {
+    fn from(bytes: [u8; BYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<Tag> for [u8; BYTES] {
+    fn from(tag: Tag) -> [u8; BYTES] {
+        tag.0
     }
 }
 
@@ -411,5 +464,107 @@ mod tests {
         // Verify with wrong key
         let wrong_key = Key::generate().unwrap();
         assert!(!verify(&tag, message, &wrong_key));
+    }
+
+    #[test]
+    fn test_key_as_ref() {
+        let key = Key::generate().unwrap();
+        let key_ref: &[u8] = key.as_ref();
+        assert_eq!(key_ref.len(), KEYBYTES);
+        assert_eq!(key_ref, key.as_bytes());
+    }
+
+    #[test]
+    fn test_key_try_from_slice() {
+        // Valid slice
+        let bytes = vec![0x42; KEYBYTES];
+        let key = Key::try_from(bytes.as_slice()).unwrap();
+        assert_eq!(key.as_bytes(), bytes.as_slice());
+
+        // Invalid slice - too short
+        let short_bytes = vec![0x42; KEYBYTES - 1];
+        assert!(Key::try_from(short_bytes.as_slice()).is_err());
+
+        // Invalid slice - too long
+        let long_bytes = vec![0x42; KEYBYTES + 1];
+        assert!(Key::try_from(long_bytes.as_slice()).is_err());
+    }
+
+    #[test]
+    fn test_key_from_array() {
+        let bytes = [0x42; KEYBYTES];
+        let key = Key::from(bytes);
+        assert_eq!(key.as_bytes(), &bytes);
+    }
+
+    #[test]
+    fn test_key_into_array() {
+        let original_bytes = [0x42; KEYBYTES];
+        let key = Key::from(original_bytes);
+        let bytes: [u8; KEYBYTES] = key.into();
+        assert_eq!(bytes, original_bytes);
+    }
+
+    #[test]
+    fn test_tag_as_ref() {
+        let key = Key::generate().unwrap();
+        let message = b"test message";
+        let tag = auth(message, &key).unwrap();
+        let tag_ref: &[u8] = tag.as_ref();
+        assert_eq!(tag_ref.len(), BYTES);
+        assert_eq!(tag_ref, tag.as_bytes());
+    }
+
+    #[test]
+    fn test_tag_try_from_slice() {
+        // Valid slice
+        let bytes = vec![0x42; BYTES];
+        let tag = Tag::try_from(bytes.as_slice()).unwrap();
+        assert_eq!(tag.as_bytes(), bytes.as_slice());
+
+        // Invalid slice - too short
+        let short_bytes = vec![0x42; BYTES - 1];
+        assert!(Tag::try_from(short_bytes.as_slice()).is_err());
+
+        // Invalid slice - too long
+        let long_bytes = vec![0x42; BYTES + 1];
+        assert!(Tag::try_from(long_bytes.as_slice()).is_err());
+    }
+
+    #[test]
+    fn test_tag_from_array() {
+        let bytes = [0x42; BYTES];
+        let tag = Tag::from(bytes);
+        assert_eq!(tag.as_bytes(), &bytes);
+    }
+
+    #[test]
+    fn test_tag_into_array() {
+        let original_bytes = [0x42; BYTES];
+        let tag = Tag::from(original_bytes);
+        let bytes: [u8; BYTES] = tag.into();
+        assert_eq!(bytes, original_bytes);
+    }
+
+    #[test]
+    fn test_key_tag_roundtrip() {
+        // Test Key roundtrip
+        let key_bytes = [0x42; KEYBYTES];
+        let key = Key::from(key_bytes);
+        let key_bytes_out: [u8; KEYBYTES] = key.into();
+        assert_eq!(key_bytes, key_bytes_out);
+        let key_from_bytes = Key::from(key_bytes_out);
+        assert_eq!(key_from_bytes.as_bytes(), &key_bytes);
+
+        // Test Tag roundtrip with real tag
+        let key = Key::generate().unwrap();
+        let message = b"test message";
+        let tag = auth(message, &key).unwrap();
+        let tag_bytes: [u8; BYTES] = tag.clone().into();
+        let tag_from_bytes = Tag::from(tag_bytes);
+        assert_eq!(tag.as_bytes(), tag_from_bytes.as_bytes());
+
+        // Verify the reconstructed tag still works
+        assert!(verify(&tag_from_bytes, message, &key));
     }
 }

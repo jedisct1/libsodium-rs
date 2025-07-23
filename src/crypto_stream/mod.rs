@@ -181,6 +181,24 @@ impl TryFrom<&[u8]> for Key {
     }
 }
 
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl From<[u8; KEYBYTES]> for Key {
+    fn from(bytes: [u8; KEYBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<Key> for [u8; KEYBYTES] {
+    fn from(key: Key) -> [u8; KEYBYTES] {
+        key.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -197,6 +215,32 @@ mod tests {
         let key_bytes = key.as_bytes();
         let key2 = Key::from_slice(key_bytes).unwrap();
         assert_eq!(key2.as_bytes(), key_bytes);
+    }
+
+    #[test]
+    fn test_key_traits() {
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; KEYBYTES];
+        let key = Key::try_from(&bytes[..]).unwrap();
+        assert_eq!(key.as_bytes(), &bytes);
+
+        // Test invalid length
+        let invalid_bytes = [0x42; KEYBYTES - 1];
+        assert!(Key::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; KEYBYTES]>
+        let array = [0x43; KEYBYTES];
+        let key2 = Key::from(array);
+        assert_eq!(key2.as_bytes(), &array);
+
+        // Test From<Key> for [u8; KEYBYTES]
+        let extracted: [u8; KEYBYTES] = key2.into();
+        assert_eq!(extracted, array);
+
+        // Test AsRef<[u8]>
+        let key3 = Key::generate().unwrap();
+        let slice_ref: &[u8] = key3.as_ref();
+        assert_eq!(slice_ref.len(), KEYBYTES);
     }
 
     #[test]

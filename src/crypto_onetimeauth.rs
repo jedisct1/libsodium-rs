@@ -440,6 +440,48 @@ impl TryFrom<&[u8]> for Tag {
     }
 }
 
+// Add AsRef<[u8]> implementation for Key
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+// Add AsRef<[u8]> implementation for Tag
+impl AsRef<[u8]> for Tag {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+// Add From<[u8; KEYBYTES]> for Key
+impl From<[u8; KEYBYTES]> for Key {
+    fn from(bytes: [u8; KEYBYTES]) -> Self {
+        Key(bytes)
+    }
+}
+
+// Add From<[u8; BYTES]> for Tag
+impl From<[u8; BYTES]> for Tag {
+    fn from(bytes: [u8; BYTES]) -> Self {
+        Tag(bytes)
+    }
+}
+
+// Add From<Key> for [u8; KEYBYTES]
+impl From<Key> for [u8; KEYBYTES] {
+    fn from(key: Key) -> Self {
+        key.0
+    }
+}
+
+// Add From<Tag> for [u8; BYTES]
+impl From<Tag> for [u8; BYTES] {
+    fn from(tag: Tag) -> Self {
+        tag.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -485,5 +527,59 @@ mod tests {
 
         // Both methods should produce the same tag
         assert_eq!(expected_tag.as_bytes(), incremental_tag.as_bytes());
+    }
+
+    #[test]
+    fn test_key_trait_implementations() {
+        // Test From<[u8; KEYBYTES]> for Key
+        let key_bytes = [42u8; KEYBYTES];
+        let key = Key::from(key_bytes);
+        assert_eq!(key.as_bytes(), &key_bytes);
+
+        // Test From<Key> for [u8; KEYBYTES]
+        let key_bytes_back: [u8; KEYBYTES] = key.clone().into();
+        assert_eq!(key_bytes_back, key_bytes);
+
+        // Test AsRef<[u8]> for Key
+        let key_ref: &[u8] = key.as_ref();
+        assert_eq!(key_ref, &key_bytes);
+        assert_eq!(key_ref.len(), KEYBYTES);
+    }
+
+    #[test]
+    fn test_tag_trait_implementations() {
+        // Test From<[u8; BYTES]> for Tag
+        let tag_bytes = [99u8; BYTES];
+        let tag = Tag::from(tag_bytes);
+        assert_eq!(tag.as_bytes(), &tag_bytes);
+
+        // Test From<Tag> for [u8; BYTES]
+        let tag_bytes_back: [u8; BYTES] = tag.clone().into();
+        assert_eq!(tag_bytes_back, tag_bytes);
+
+        // Test AsRef<[u8]> for Tag
+        let tag_ref: &[u8] = tag.as_ref();
+        assert_eq!(tag_ref, &tag_bytes);
+        assert_eq!(tag_ref.len(), BYTES);
+    }
+
+    #[test]
+    fn test_key_tag_conversions_with_real_crypto() {
+        // Generate a real key and test conversions
+        let key = Key::generate();
+        let key_bytes: [u8; KEYBYTES] = key.clone().into();
+        let key_restored = Key::from(key_bytes);
+        assert_eq!(key.as_bytes(), key_restored.as_bytes());
+
+        // Test with real crypto operations
+        let message = b"Test message for trait conversions";
+        let tag = onetimeauth(message, &key_restored);
+
+        // Convert tag to bytes and back
+        let tag_bytes: [u8; BYTES] = tag.clone().into();
+        let tag_restored = Tag::from(tag_bytes);
+
+        // Verify the restored tag works correctly
+        assert!(verify(&tag_restored, message, &key_restored));
     }
 }

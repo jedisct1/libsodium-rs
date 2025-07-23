@@ -153,6 +153,40 @@ pub const KEYBYTES: usize = libsodium_sys::crypto_kdf_KEYBYTES as usize;
 #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
 pub struct Key([u8; KEYBYTES]);
 
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for Key {
+    type Error = crate::SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        if slice.len() != KEYBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "key must be exactly {} bytes",
+                KEYBYTES
+            )));
+        }
+        let mut key = [0u8; KEYBYTES];
+        key.copy_from_slice(slice);
+        Ok(Key(key))
+    }
+}
+
+impl From<[u8; KEYBYTES]> for Key {
+    fn from(bytes: [u8; KEYBYTES]) -> Self {
+        Key(bytes)
+    }
+}
+
+impl From<Key> for [u8; KEYBYTES] {
+    fn from(key: Key) -> Self {
+        key.0
+    }
+}
+
 impl Key {
     /// Generates a new random key for key derivation
     ///
@@ -449,6 +483,40 @@ pub mod blake2b {
     #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
     pub struct Key([u8; KEYBYTES]);
 
+    impl AsRef<[u8]> for Key {
+        fn as_ref(&self) -> &[u8] {
+            &self.0
+        }
+    }
+
+    impl TryFrom<&[u8]> for Key {
+        type Error = crate::SodiumError;
+
+        fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+            if slice.len() != KEYBYTES {
+                return Err(SodiumError::InvalidInput(format!(
+                    "key must be exactly {} bytes",
+                    KEYBYTES
+                )));
+            }
+            let mut key = [0u8; KEYBYTES];
+            key.copy_from_slice(slice);
+            Ok(Key(key))
+        }
+    }
+
+    impl From<[u8; KEYBYTES]> for Key {
+        fn from(bytes: [u8; KEYBYTES]) -> Self {
+            Key(bytes)
+        }
+    }
+
+    impl From<Key> for [u8; KEYBYTES] {
+        fn from(key: Key) -> Self {
+            key.0
+        }
+    }
+
     impl Key {
         /// Generates a new random key
         pub fn generate() -> Result<Self> {
@@ -633,6 +701,40 @@ pub mod hkdf {
         /// It can be used as input to the expand step to derive multiple keys.
         #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
         pub struct Prk([u8; KEYBYTES]);
+
+        impl AsRef<[u8]> for Prk {
+            fn as_ref(&self) -> &[u8] {
+                &self.0
+            }
+        }
+
+        impl TryFrom<&[u8]> for Prk {
+            type Error = crate::SodiumError;
+
+            fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+                if slice.len() != KEYBYTES {
+                    return Err(SodiumError::InvalidInput(format!(
+                        "PRK must be exactly {} bytes",
+                        KEYBYTES
+                    )));
+                }
+                let mut prk = [0u8; KEYBYTES];
+                prk.copy_from_slice(slice);
+                Ok(Prk(prk))
+            }
+        }
+
+        impl From<[u8; KEYBYTES]> for Prk {
+            fn from(bytes: [u8; KEYBYTES]) -> Self {
+                Prk(bytes)
+            }
+        }
+
+        impl From<Prk> for [u8; KEYBYTES] {
+            fn from(prk: Prk) -> Self {
+                prk.0
+            }
+        }
 
         impl Prk {
             /// Returns a reference to the PRK as a byte slice
@@ -964,6 +1066,40 @@ pub mod hkdf {
         /// It can be used as input to the expand step to derive multiple keys.
         #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
         pub struct Prk([u8; KEYBYTES]);
+
+        impl AsRef<[u8]> for Prk {
+            fn as_ref(&self) -> &[u8] {
+                &self.0
+            }
+        }
+
+        impl TryFrom<&[u8]> for Prk {
+            type Error = crate::SodiumError;
+
+            fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+                if slice.len() != KEYBYTES {
+                    return Err(SodiumError::InvalidInput(format!(
+                        "PRK must be exactly {} bytes",
+                        KEYBYTES
+                    )));
+                }
+                let mut prk = [0u8; KEYBYTES];
+                prk.copy_from_slice(slice);
+                Ok(Prk(prk))
+            }
+        }
+
+        impl From<[u8; KEYBYTES]> for Prk {
+            fn from(bytes: [u8; KEYBYTES]) -> Self {
+                Prk(bytes)
+            }
+        }
+
+        impl From<Prk> for [u8; KEYBYTES] {
+            fn from(prk: Prk) -> Self {
+                prk.0
+            }
+        }
 
         impl Prk {
             /// Returns a reference to the PRK as a byte slice
@@ -1402,5 +1538,109 @@ mod tests {
 
         // Both methods should produce the same PRK
         assert_eq!(prk1.as_bytes(), prk2.as_bytes());
+    }
+
+    #[test]
+    fn test_main_key_traits() {
+        // Test AsRef
+        let key = Key::generate().unwrap();
+        let key_ref: &[u8] = key.as_ref();
+        assert_eq!(key_ref.len(), KEYBYTES);
+
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; KEYBYTES];
+        let key_from_slice = Key::try_from(&bytes[..]).unwrap();
+        assert_eq!(key_from_slice.as_ref(), &bytes);
+
+        // Test TryFrom with invalid length
+        let invalid_bytes = [0x42; KEYBYTES - 1];
+        assert!(Key::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; KEYBYTES]>
+        let key_from_array = Key::from(bytes);
+        assert_eq!(key_from_array.as_ref(), &bytes);
+
+        // Test From<Key> for [u8; KEYBYTES]
+        let key = Key::from(bytes);
+        let bytes_from_key: [u8; KEYBYTES] = key.into();
+        assert_eq!(bytes_from_key, bytes);
+    }
+
+    #[test]
+    fn test_blake2b_key_traits() {
+        // Test AsRef
+        let key = blake2b::Key::generate().unwrap();
+        let key_ref: &[u8] = key.as_ref();
+        assert_eq!(key_ref.len(), blake2b::KEYBYTES);
+
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; blake2b::KEYBYTES];
+        let key_from_slice = blake2b::Key::try_from(&bytes[..]).unwrap();
+        assert_eq!(key_from_slice.as_ref(), &bytes);
+
+        // Test TryFrom with invalid length
+        let invalid_bytes = [0x42; blake2b::KEYBYTES - 1];
+        assert!(blake2b::Key::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; KEYBYTES]>
+        let key_from_array = blake2b::Key::from(bytes);
+        assert_eq!(key_from_array.as_ref(), &bytes);
+
+        // Test From<Key> for [u8; KEYBYTES]
+        let key = blake2b::Key::from(bytes);
+        let bytes_from_key: [u8; blake2b::KEYBYTES] = key.into();
+        assert_eq!(bytes_from_key, bytes);
+    }
+
+    #[test]
+    fn test_hkdf_sha256_prk_traits() {
+        // Test AsRef
+        let prk = hkdf::sha256::keygen();
+        let prk_ref: &[u8] = prk.as_ref();
+        assert_eq!(prk_ref.len(), hkdf::sha256::KEYBYTES);
+
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; hkdf::sha256::KEYBYTES];
+        let prk_from_slice = hkdf::sha256::Prk::try_from(&bytes[..]).unwrap();
+        assert_eq!(prk_from_slice.as_ref(), &bytes);
+
+        // Test TryFrom with invalid length
+        let invalid_bytes = [0x42; hkdf::sha256::KEYBYTES - 1];
+        assert!(hkdf::sha256::Prk::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; KEYBYTES]>
+        let prk_from_array = hkdf::sha256::Prk::from(bytes);
+        assert_eq!(prk_from_array.as_ref(), &bytes);
+
+        // Test From<Prk> for [u8; KEYBYTES]
+        let prk = hkdf::sha256::Prk::from(bytes);
+        let bytes_from_prk: [u8; hkdf::sha256::KEYBYTES] = prk.into();
+        assert_eq!(bytes_from_prk, bytes);
+    }
+
+    #[test]
+    fn test_hkdf_sha512_prk_traits() {
+        // Test AsRef
+        let prk = hkdf::sha512::keygen();
+        let prk_ref: &[u8] = prk.as_ref();
+        assert_eq!(prk_ref.len(), hkdf::sha512::KEYBYTES);
+
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; hkdf::sha512::KEYBYTES];
+        let prk_from_slice = hkdf::sha512::Prk::try_from(&bytes[..]).unwrap();
+        assert_eq!(prk_from_slice.as_ref(), &bytes);
+
+        // Test TryFrom with invalid length
+        let invalid_bytes = [0x42; hkdf::sha512::KEYBYTES - 1];
+        assert!(hkdf::sha512::Prk::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; KEYBYTES]>
+        let prk_from_array = hkdf::sha512::Prk::from(bytes);
+        assert_eq!(prk_from_array.as_ref(), &bytes);
+
+        // Test From<Prk> for [u8; KEYBYTES]
+        let prk = hkdf::sha512::Prk::from(bytes);
+        let bytes_from_prk: [u8; hkdf::sha512::KEYBYTES] = prk.into();
+        assert_eq!(bytes_from_prk, bytes);
     }
 }

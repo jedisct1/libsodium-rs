@@ -341,6 +341,12 @@ impl From<[u8; libsodium_sys::crypto_box_PUBLICKEYBYTES as usize]> for PublicKey
     }
 }
 
+impl From<PublicKey> for [u8; PUBLICKEYBYTES] {
+    fn from(key: PublicKey) -> [u8; PUBLICKEYBYTES] {
+        key.0
+    }
+}
+
 impl std::fmt::Debug for PublicKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let hex = ct_codecs::Hex::encode_to_string(&self.0[..4]).unwrap_or_default();
@@ -426,6 +432,12 @@ impl From<[u8; libsodium_sys::crypto_box_SECRETKEYBYTES as usize]> for SecretKey
     }
 }
 
+impl From<SecretKey> for [u8; SECRETKEYBYTES] {
+    fn from(key: SecretKey) -> [u8; SECRETKEYBYTES] {
+        key.0
+    }
+}
+
 impl std::fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("SecretKey(*****)")
@@ -480,6 +492,32 @@ impl PrecomputedKey {
     /// * `&[u8]` - Reference to the precomputed key bytes
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl AsRef<[u8]> for PrecomputedKey {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for PrecomputedKey {
+    type Error = SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(slice)
+    }
+}
+
+impl From<[u8; BEFORENMBYTES]> for PrecomputedKey {
+    fn from(bytes: [u8; BEFORENMBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<PrecomputedKey> for [u8; BEFORENMBYTES] {
+    fn from(key: PrecomputedKey) -> [u8; BEFORENMBYTES] {
+        key.0
     }
 }
 
@@ -1842,5 +1880,66 @@ mod tests {
             open_nacl_afternm(&padded_ciphertext, &nonce, &bob_precomputed).unwrap();
 
         assert_eq!(decrypted_padded, padded_message);
+    }
+
+    #[test]
+    fn test_publickey_traits() {
+        let keypair = KeyPair::generate();
+        let pk = keypair.public_key;
+
+        // Test From<[u8; N]> for PublicKey
+        let bytes: [u8; PUBLICKEYBYTES] = pk.clone().into();
+        let pk2 = PublicKey::from(bytes);
+        assert_eq!(pk.as_bytes(), pk2.as_bytes());
+
+        // Test From<PublicKey> for [u8; N]
+        let extracted: [u8; PUBLICKEYBYTES] = pk.into();
+        assert_eq!(extracted, bytes);
+    }
+
+    #[test]
+    fn test_secretkey_traits() {
+        let keypair = KeyPair::generate();
+        let sk = keypair.secret_key;
+
+        // Test From<[u8; N]> for SecretKey
+        let bytes: [u8; SECRETKEYBYTES] = sk.clone().into();
+        let sk2 = SecretKey::from(bytes);
+        assert_eq!(sk.as_bytes(), sk2.as_bytes());
+
+        // Test From<SecretKey> for [u8; N]
+        let extracted: [u8; SECRETKEYBYTES] = sk.into();
+        assert_eq!(extracted, bytes);
+    }
+
+    #[test]
+    fn test_precomputedkey_traits() {
+        let alice_keypair = KeyPair::generate();
+        let bob_keypair = KeyPair::generate();
+
+        let precomputed = beforenm(&bob_keypair.public_key, &alice_keypair.secret_key).unwrap();
+
+        // Test TryFrom<&[u8]>
+        let bytes = precomputed.as_bytes();
+        let pk2 = PrecomputedKey::try_from(bytes).unwrap();
+        assert_eq!(precomputed.as_bytes(), pk2.as_bytes());
+
+        // Test invalid length
+        let invalid_bytes = vec![0u8; BEFORENMBYTES - 1];
+        assert!(PrecomputedKey::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; N]>
+        let array: [u8; BEFORENMBYTES] = precomputed.clone().into();
+        let pk3 = PrecomputedKey::from(array);
+        assert_eq!(precomputed.as_bytes(), pk3.as_bytes());
+
+        // Test From<PrecomputedKey> for [u8; N]
+        let extracted: [u8; BEFORENMBYTES] = precomputed.into();
+        assert_eq!(extracted, array);
+
+        // Test AsRef<[u8]>
+        let precomputed2 = beforenm(&alice_keypair.public_key, &bob_keypair.secret_key).unwrap();
+        let slice_ref: &[u8] = precomputed2.as_ref();
+        assert_eq!(slice_ref.len(), BEFORENMBYTES);
     }
 }

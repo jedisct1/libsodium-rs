@@ -156,7 +156,7 @@
 //! ```
 
 use crate::{Result, SodiumError};
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 
 /// Number of bytes in a secret key (16)
 ///
@@ -258,6 +258,26 @@ impl AsRef<[u8]> for Nonce {
         &self.0
     }
 }
+
+impl TryFrom<&[u8]> for Nonce {
+    type Error = SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::try_from_slice(slice)
+    }
+}
+
+impl From<[u8; NPUBBYTES]> for Nonce {
+    fn from(bytes: [u8; NPUBBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<Nonce> for [u8; NPUBBYTES] {
+    fn from(nonce: Nonce) -> [u8; NPUBBYTES] {
+        nonce.0
+    }
+}
 /// Number of bytes in an authentication tag (16)
 ///
 /// This is the size of the authentication tag that is added to the ciphertext.
@@ -324,6 +344,32 @@ impl Key {
     /// Get the bytes of the key
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for Key {
+    type Error = SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(slice)
+    }
+}
+
+impl From<[u8; KEYBYTES]> for Key {
+    fn from(bytes: [u8; KEYBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<Key> for [u8; KEYBYTES] {
+    fn from(key: Key) -> [u8; KEYBYTES] {
+        key.0
     }
 }
 
@@ -815,5 +861,61 @@ mod tests {
 
         // Decryption should fail
         assert!(decrypt(&ciphertext, Some(additional_data), &nonce, &key).is_err());
+    }
+
+    #[test]
+    fn test_nonce_traits() {
+        ensure_init().expect("Failed to initialize libsodium");
+
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; NPUBBYTES];
+        let nonce = Nonce::try_from(&bytes[..]).unwrap();
+        assert_eq!(nonce.as_bytes(), &bytes);
+
+        // Test invalid length
+        let invalid_bytes = [0x42; NPUBBYTES - 1];
+        assert!(Nonce::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; NPUBBYTES]>
+        let array = [0x43; NPUBBYTES];
+        let nonce2 = Nonce::from(array);
+        assert_eq!(nonce2.as_bytes(), &array);
+
+        // Test From<Nonce> for [u8; NPUBBYTES]
+        let extracted: [u8; NPUBBYTES] = nonce2.into();
+        assert_eq!(extracted, array);
+
+        // Test AsRef<[u8]>
+        let nonce3 = Nonce::generate();
+        let slice_ref: &[u8] = nonce3.as_ref();
+        assert_eq!(slice_ref.len(), NPUBBYTES);
+    }
+
+    #[test]
+    fn test_key_traits() {
+        ensure_init().expect("Failed to initialize libsodium");
+
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; KEYBYTES];
+        let key = Key::try_from(&bytes[..]).unwrap();
+        assert_eq!(key.as_bytes(), &bytes);
+
+        // Test invalid length
+        let invalid_bytes = [0x42; KEYBYTES - 1];
+        assert!(Key::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; KEYBYTES]>
+        let array = [0x43; KEYBYTES];
+        let key2 = Key::from(array);
+        assert_eq!(key2.as_bytes(), &array);
+
+        // Test From<Key> for [u8; KEYBYTES]
+        let extracted: [u8; KEYBYTES] = key2.into();
+        assert_eq!(extracted, array);
+
+        // Test AsRef<[u8]>
+        let key3 = Key::generate();
+        let slice_ref: &[u8] = key3.as_ref();
+        assert_eq!(slice_ref.len(), KEYBYTES);
     }
 }

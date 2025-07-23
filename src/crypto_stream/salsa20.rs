@@ -110,6 +110,26 @@ impl AsRef<[u8]> for Nonce {
     }
 }
 
+impl std::convert::TryFrom<&[u8]> for Nonce {
+    type Error = SodiumError;
+
+    fn try_from(slice: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::try_from_slice(slice)
+    }
+}
+
+impl From<[u8; NONCEBYTES]> for Nonce {
+    fn from(bytes: [u8; NONCEBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<Nonce> for [u8; NONCEBYTES] {
+    fn from(nonce: Nonce) -> [u8; NONCEBYTES] {
+        nonce.0
+    }
+}
+
 /// Generate a stream of random bytes using Salsa20
 ///
 /// This function generates a deterministic stream of pseudo-random bytes using the
@@ -222,4 +242,35 @@ pub fn stream_xor(message: &[u8], nonce: &Nonce, key: &Key) -> Vec<u8> {
     }
 
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_nonce_traits() {
+        // Test TryFrom<&[u8]>
+        let bytes = [0x42; NONCEBYTES];
+        let nonce = Nonce::try_from(&bytes[..]).unwrap();
+        assert_eq!(nonce.as_bytes(), &bytes);
+
+        // Test invalid length
+        let invalid_bytes = [0x42; NONCEBYTES - 1];
+        assert!(Nonce::try_from(&invalid_bytes[..]).is_err());
+
+        // Test From<[u8; NONCEBYTES]>
+        let array = [0x43; NONCEBYTES];
+        let nonce2 = Nonce::from(array);
+        assert_eq!(nonce2.as_bytes(), &array);
+
+        // Test From<Nonce> for [u8; NONCEBYTES]
+        let extracted: [u8; NONCEBYTES] = nonce2.into();
+        assert_eq!(extracted, array);
+
+        // Test AsRef<[u8]>
+        let nonce3 = Nonce::generate();
+        let slice_ref: &[u8] = nonce3.as_ref();
+        assert_eq!(slice_ref.len(), NONCEBYTES);
+    }
 }

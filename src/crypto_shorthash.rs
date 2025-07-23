@@ -56,6 +56,7 @@
 
 use crate::{Result, SodiumError};
 use libc;
+use std::convert::TryFrom;
 
 /// Number of bytes in a key
 pub const KEYBYTES: usize = libsodium_sys::crypto_shorthash_KEYBYTES as usize;
@@ -143,6 +144,32 @@ pub fn shorthash(input: &[u8], key: &Key) -> [u8; BYTES] {
     out
 }
 
+impl AsRef<[u8]> for Key {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for Key {
+    type Error = SodiumError;
+
+    fn try_from(bytes: &[u8]) -> std::result::Result<Self, Self::Error> {
+        Self::from_bytes(bytes)
+    }
+}
+
+impl From<[u8; KEYBYTES]> for Key {
+    fn from(bytes: [u8; KEYBYTES]) -> Self {
+        Key(bytes)
+    }
+}
+
+impl From<Key> for [u8; KEYBYTES] {
+    fn from(key: Key) -> Self {
+        key.0
+    }
+}
+
 /// SipHash-2-4 hash function with 128-bit output
 pub mod siphash24 {
     use super::*;
@@ -213,6 +240,32 @@ pub mod siphash24 {
         }
 
         out
+    }
+
+    impl AsRef<[u8]> for Key {
+        fn as_ref(&self) -> &[u8] {
+            &self.0
+        }
+    }
+
+    impl TryFrom<&[u8]> for Key {
+        type Error = SodiumError;
+
+        fn try_from(bytes: &[u8]) -> std::result::Result<Self, Self::Error> {
+            Self::from_bytes(bytes)
+        }
+    }
+
+    impl From<[u8; KEYBYTES]> for Key {
+        fn from(bytes: [u8; KEYBYTES]) -> Self {
+            Key(bytes)
+        }
+    }
+
+    impl From<Key> for [u8; KEYBYTES] {
+        fn from(key: Key) -> Self {
+            key.0
+        }
     }
 }
 
@@ -287,6 +340,32 @@ pub mod siphashx24 {
 
         out
     }
+
+    impl AsRef<[u8]> for Key {
+        fn as_ref(&self) -> &[u8] {
+            &self.0
+        }
+    }
+
+    impl TryFrom<&[u8]> for Key {
+        type Error = SodiumError;
+
+        fn try_from(bytes: &[u8]) -> std::result::Result<Self, Self::Error> {
+            Self::from_bytes(bytes)
+        }
+    }
+
+    impl From<[u8; KEYBYTES]> for Key {
+        fn from(bytes: [u8; KEYBYTES]) -> Self {
+            Key(bytes)
+        }
+    }
+
+    impl From<Key> for [u8; KEYBYTES] {
+        fn from(key: Key) -> Self {
+            key.0
+        }
+    }
 }
 
 #[cfg(test)]
@@ -341,5 +420,169 @@ mod tests {
         // Same data and key should produce the same hash
         let hash2 = siphashx24::shorthash(data, &key);
         assert_eq!(hash, hash2);
+    }
+
+    #[test]
+    fn test_key_traits() {
+        // Test for the main Key type
+        let key_bytes = [0u8; KEYBYTES];
+
+        // Test From<[u8; KEYBYTES]>
+        let key = Key::from(key_bytes);
+
+        // Test AsRef<[u8]>
+        assert_eq!(key.as_ref(), &key_bytes);
+
+        // Test From<Key> for [u8; KEYBYTES]
+        let bytes_back: [u8; KEYBYTES] = key.clone().into();
+        assert_eq!(bytes_back, key_bytes);
+
+        // Test TryFrom<&[u8]> - success case
+        let key_from_slice = Key::try_from(&key_bytes[..]).unwrap();
+        assert_eq!(key_from_slice, key);
+
+        // Test TryFrom<&[u8]> - error cases
+        let short_slice = vec![0u8; KEYBYTES - 1];
+        assert!(Key::try_from(short_slice.as_slice()).is_err());
+
+        let long_slice = vec![0u8; KEYBYTES + 1];
+        assert!(Key::try_from(long_slice.as_slice()).is_err());
+    }
+
+    #[test]
+    fn test_siphash24_key_traits() {
+        // Test for siphash24::Key type
+        let key_bytes = [0u8; siphash24::KEYBYTES];
+
+        // Test From<[u8; KEYBYTES]>
+        let key = siphash24::Key::from(key_bytes);
+
+        // Test AsRef<[u8]>
+        assert_eq!(key.as_ref(), &key_bytes);
+
+        // Test From<Key> for [u8; KEYBYTES]
+        let bytes_back: [u8; siphash24::KEYBYTES] = key.clone().into();
+        assert_eq!(bytes_back, key_bytes);
+
+        // Test TryFrom<&[u8]> - success case
+        let key_from_slice = siphash24::Key::try_from(&key_bytes[..]).unwrap();
+        assert_eq!(key_from_slice, key);
+
+        // Test TryFrom<&[u8]> - error cases
+        let short_slice = vec![0u8; siphash24::KEYBYTES - 1];
+        assert!(siphash24::Key::try_from(short_slice.as_slice()).is_err());
+
+        let long_slice = vec![0u8; siphash24::KEYBYTES + 1];
+        assert!(siphash24::Key::try_from(long_slice.as_slice()).is_err());
+    }
+
+    #[test]
+    fn test_siphashx24_key_traits() {
+        // Test for siphashx24::Key type
+        let key_bytes = [0u8; siphashx24::KEYBYTES];
+
+        // Test From<[u8; KEYBYTES]>
+        let key = siphashx24::Key::from(key_bytes);
+
+        // Test AsRef<[u8]>
+        assert_eq!(key.as_ref(), &key_bytes);
+
+        // Test From<Key> for [u8; KEYBYTES]
+        let bytes_back: [u8; siphashx24::KEYBYTES] = key.clone().into();
+        assert_eq!(bytes_back, key_bytes);
+
+        // Test TryFrom<&[u8]> - success case
+        let key_from_slice = siphashx24::Key::try_from(&key_bytes[..]).unwrap();
+        assert_eq!(key_from_slice, key);
+
+        // Test TryFrom<&[u8]> - error cases
+        let short_slice = vec![0u8; siphashx24::KEYBYTES - 1];
+        assert!(siphashx24::Key::try_from(short_slice.as_slice()).is_err());
+
+        let long_slice = vec![0u8; siphashx24::KEYBYTES + 1];
+        assert!(siphashx24::Key::try_from(long_slice.as_slice()).is_err());
+    }
+
+    #[test]
+    fn test_key_conversion_roundtrip() {
+        // Test round-trip conversions for main Key
+        let original_key = Key::generate();
+        let bytes: [u8; KEYBYTES] = original_key.clone().into();
+        let reconstructed_key = Key::from(bytes);
+        assert_eq!(original_key, reconstructed_key);
+
+        // Also test through TryFrom
+        let key_via_try = Key::try_from(&bytes[..]).unwrap();
+        assert_eq!(original_key, key_via_try);
+    }
+
+    #[test]
+    fn test_siphash24_key_conversion_roundtrip() {
+        // Test round-trip conversions for siphash24::Key
+        let original_key = siphash24::Key::generate();
+        let bytes: [u8; siphash24::KEYBYTES] = original_key.clone().into();
+        let reconstructed_key = siphash24::Key::from(bytes);
+        assert_eq!(original_key, reconstructed_key);
+
+        // Also test through TryFrom
+        let key_via_try = siphash24::Key::try_from(&bytes[..]).unwrap();
+        assert_eq!(original_key, key_via_try);
+    }
+
+    #[test]
+    fn test_siphashx24_key_conversion_roundtrip() {
+        // Test round-trip conversions for siphashx24::Key
+        let original_key = siphashx24::Key::generate();
+        let bytes: [u8; siphashx24::KEYBYTES] = original_key.clone().into();
+        let reconstructed_key = siphashx24::Key::from(bytes);
+        assert_eq!(original_key, reconstructed_key);
+
+        // Also test through TryFrom
+        let key_via_try = siphashx24::Key::try_from(&bytes[..]).unwrap();
+        assert_eq!(original_key, key_via_try);
+    }
+
+    #[test]
+    fn test_as_ref_consistency() {
+        // Ensure AsRef and as_bytes return the same data
+        let key = Key::generate();
+        assert_eq!(key.as_ref(), key.as_bytes());
+
+        let key24 = siphash24::Key::generate();
+        assert_eq!(key24.as_ref(), key24.as_bytes());
+
+        let keyx24 = siphashx24::Key::generate();
+        assert_eq!(keyx24.as_ref(), keyx24.as_bytes());
+    }
+
+    #[test]
+    fn test_try_from_error_messages() {
+        // Test that TryFrom produces appropriate error messages
+        let short_slice = vec![0u8; 5];
+        let result = Key::try_from(short_slice.as_slice());
+        assert!(result.is_err());
+        if let Err(SodiumError::InvalidInput(msg)) = result {
+            assert!(msg.contains(&KEYBYTES.to_string()));
+        } else {
+            panic!("Expected InvalidInput error");
+        }
+
+        // Test for siphash24
+        let result24 = siphash24::Key::try_from(short_slice.as_slice());
+        assert!(result24.is_err());
+        if let Err(SodiumError::InvalidInput(msg)) = result24 {
+            assert!(msg.contains(&siphash24::KEYBYTES.to_string()));
+        } else {
+            panic!("Expected InvalidInput error");
+        }
+
+        // Test for siphashx24
+        let resultx24 = siphashx24::Key::try_from(short_slice.as_slice());
+        assert!(resultx24.is_err());
+        if let Err(SodiumError::InvalidInput(msg)) = resultx24 {
+            assert!(msg.contains(&siphashx24::KEYBYTES.to_string()));
+        } else {
+            panic!("Expected InvalidInput error");
+        }
     }
 }

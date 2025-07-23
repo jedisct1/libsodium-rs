@@ -428,6 +428,24 @@ impl PublicKey {
     }
 }
 
+impl AsRef<[u8]> for PublicKey {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl From<[u8; PUBLICKEYBYTES]> for PublicKey {
+    fn from(bytes: [u8; PUBLICKEYBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<PublicKey> for [u8; PUBLICKEYBYTES] {
+    fn from(key: PublicKey) -> [u8; PUBLICKEYBYTES] {
+        key.0
+    }
+}
+
 impl SecretKey {
     /// Generate a new secret key from bytes
     ///
@@ -459,6 +477,24 @@ impl SecretKey {
     /// * `&[u8]` - A reference to the secret key bytes
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl AsRef<[u8]> for SecretKey {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl From<[u8; SECRETKEYBYTES]> for SecretKey {
+    fn from(bytes: [u8; SECRETKEYBYTES]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<SecretKey> for [u8; SECRETKEYBYTES] {
+    fn from(key: SecretKey) -> [u8; SECRETKEYBYTES] {
+        key.0
     }
 }
 
@@ -1619,5 +1655,45 @@ mod tests {
         verify_state3.update(part1).unwrap();
         verify_state3.update(part2).unwrap();
         assert!(!verify_state3.finalize_verify(&signature, &wrong_pk));
+    }
+
+    #[test]
+    fn test_publickey_traits() {
+        let keypair = KeyPair::generate().unwrap();
+        let pk = keypair.public_key;
+
+        // Test AsRef<[u8]>
+        let bytes_ref: &[u8] = pk.as_ref();
+        assert_eq!(bytes_ref.len(), PUBLICKEYBYTES);
+        assert_eq!(bytes_ref, pk.as_bytes());
+
+        // Test From<[u8; N]> for PublicKey
+        let bytes: [u8; PUBLICKEYBYTES] = pk.clone().into();
+        let pk2 = PublicKey::from(bytes);
+        assert_eq!(pk.as_bytes(), pk2.as_bytes());
+
+        // Test From<PublicKey> for [u8; N]
+        let extracted: [u8; PUBLICKEYBYTES] = pk.into();
+        assert_eq!(extracted, bytes);
+    }
+
+    #[test]
+    fn test_secretkey_traits() {
+        let keypair = KeyPair::generate().unwrap();
+        let sk = keypair.secret_key;
+
+        // Test AsRef<[u8]>
+        let bytes_ref: &[u8] = sk.as_ref();
+        assert_eq!(bytes_ref.len(), SECRETKEYBYTES);
+        assert_eq!(bytes_ref, sk.as_bytes());
+
+        // Test From<[u8; N]> for SecretKey
+        let bytes: [u8; SECRETKEYBYTES] = sk.clone().into();
+        let sk2 = SecretKey::from(bytes);
+        assert_eq!(sk.as_bytes(), sk2.as_bytes());
+
+        // Test From<SecretKey> for [u8; N]
+        let extracted: [u8; SECRETKEYBYTES] = sk.into();
+        assert_eq!(extracted, bytes);
     }
 }
