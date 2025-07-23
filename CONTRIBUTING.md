@@ -3,7 +3,7 @@
 ## Code guidelines
 
 - No breaking changes
-- No macro
+- No macros
 - Everything should be documented and tested
 
 ## Contributing code
