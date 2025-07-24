@@ -216,6 +216,14 @@ impl PublicKey {
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
     }
+
+    /// Get a reference to the underlying byte array
+    ///
+    /// # Returns
+    /// * `&[u8; PUBLICKEYBYTES]` - Reference to the public key bytes as an array
+    pub fn as_array(&self) -> &[u8; PUBLICKEYBYTES] {
+        &self.0
+    }
 }
 
 impl AsRef<PublicKey> for PublicKey {
@@ -279,6 +287,14 @@ impl SecretKey {
     /// # Returns
     /// * `&[u8]` - A reference to the secret key bytes
     pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+
+    /// Get a reference to the underlying byte array
+    ///
+    /// # Returns
+    /// * &[u8; SECRETKEYBYTES] - Reference to secret key bytes as an array
+    pub fn as_array(&self) -> &[u8; SECRETKEYBYTES] {
         &self.0
     }
 }
