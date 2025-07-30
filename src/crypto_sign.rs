@@ -446,6 +446,12 @@ impl From<PublicKey> for [u8; PUBLICKEYBYTES] {
     }
 }
 
+impl std::hash::Hash for PublicKey {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
 impl SecretKey {
     /// Generate a new secret key from bytes
     ///
@@ -1675,6 +1681,18 @@ mod tests {
         // Test From<PublicKey> for [u8; N]
         let extracted: [u8; PUBLICKEYBYTES] = pk.into();
         assert_eq!(extracted, bytes);
+
+        // Test Hash for PublicKey
+        let alice = KeyPair::generate().unwrap().public_key;
+        let bob = KeyPair::generate().unwrap().public_key;
+
+        let hash = |k: PublicKey| -> u64 {
+            let mut h = std::hash::DefaultHasher::new();
+            <PublicKey as std::hash::Hash>::hash(&k, &mut h);
+            <std::hash::DefaultHasher as std::hash::Hasher>::finish(&h)
+        };
+        assert_eq!(hash(alice.clone()), hash(alice.clone()));
+        assert_ne!(hash(alice), hash(bob));
     }
 
     #[test]
