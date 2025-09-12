@@ -46,7 +46,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libsodium-rs = "0.1"
+libsodium-rs = "0.2"
 ```
 
 This crate requires libsodium to be installed on your system. Installation instructions for various platforms:
