@@ -528,9 +528,13 @@ pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> Result<bool> {
         )));
     }
 
+    // Create a null-terminated C string for the hash
+    let c_hash = std::ffi::CString::new(hash_str)
+        .map_err(|_| SodiumError::InvalidInput("hash string contains null bytes".into()))?;
+
     let result = unsafe {
         libsodium_sys::crypto_pwhash_str_verify(
-            hash_str.as_ptr() as *const libc::c_char,
+            c_hash.as_ptr(),
             password.as_ptr() as *const libc::c_char,
             password.len() as libc::c_ulonglong,
         )

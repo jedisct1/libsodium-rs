@@ -654,7 +654,7 @@ impl KeyPair {
     /// ensure_init().expect("Failed to initialize libsodium");
     ///
     /// // Generate a key pair
-    /// let keypair = crypto_box::KeyPair::generate();
+    /// let keypair = crypto_box::KeyPair::generate().unwrap();
     ///
     /// // Convert to tuple
     /// let (public_key, secret_key) = keypair.into_tuple();

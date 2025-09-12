@@ -176,7 +176,7 @@ fn main() {
     let signed_message = crypto_sign::sign(message, &secret_key).unwrap();
 
     // Verify the signature and get the original message
-    let verified_message = crypto_sign::open(&signed_message, &public_key).unwrap();
+    let verified_message = crypto_sign::verify(&signed_message, &public_key).unwrap();
 
     assert_eq!(message, &verified_message[..]);
 

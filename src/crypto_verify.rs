@@ -46,7 +46,10 @@
 /// Compares two 16-byte sequences in constant time
 ///
 /// Returns `false` if the inputs are not 16 bytes in length or if they don't match.
-/// This function executes in constant time regardless of the input values.
+/// This function executes in constant time for equal-length inputs.
+///
+/// Note: Length checking happens before constant-time comparison for safety,
+/// as comparing different-length buffers would be undefined behavior.
 pub fn verify_16(x: &[u8], y: &[u8]) -> bool {
     if x.len() != 16 || y.len() != 16 {
         return false;
@@ -57,7 +60,10 @@ pub fn verify_16(x: &[u8], y: &[u8]) -> bool {
 /// Compares two 32-byte sequences in constant time
 ///
 /// Returns `false` if the inputs are not 32 bytes in length or if they don't match.
-/// This function executes in constant time regardless of the input values.
+/// This function executes in constant time for equal-length inputs.
+///
+/// Note: Length checking happens before constant-time comparison for safety,
+/// as comparing different-length buffers would be undefined behavior.
 pub fn verify_32(x: &[u8], y: &[u8]) -> bool {
     if x.len() != 32 || y.len() != 32 {
         return false;
@@ -68,7 +74,10 @@ pub fn verify_32(x: &[u8], y: &[u8]) -> bool {
 /// Compares two 64-byte sequences in constant time
 ///
 /// Returns `false` if the inputs are not 64 bytes in length or if they don't match.
-/// This function executes in constant time regardless of the input values.
+/// This function executes in constant time for equal-length inputs.
+///
+/// Note: Length checking happens before constant-time comparison for safety,
+/// as comparing different-length buffers would be undefined behavior.
 pub fn verify_64(x: &[u8], y: &[u8]) -> bool {
     if x.len() != 64 || y.len() != 64 {
         return false;
