@@ -261,8 +261,8 @@ pub const PRIMITIVE: &str = "ed25519";
 ///
 /// // Later, reconstruct the public key from bytes
 /// let reconstructed_key = crypto_sign::PublicKey::from_bytes(key_bytes).unwrap();
-/// // Or using TryFrom
-/// let reconstructed_key2 = crypto_sign::PublicKey::try_from(key_bytes).unwrap();
+/// // Or using TryFrom with owned array
+/// let reconstructed_key2 = crypto_sign::PublicKey::try_from(*key_bytes).unwrap();
 ///
 /// assert_eq!(public_key, reconstructed_key);
 /// assert_eq!(public_key, reconstructed_key2);
