@@ -23,7 +23,7 @@ exclude = [
 rust-version = "1.60.0"
 
 [dependencies]
-libsodium-sys-stable = { version = "1.22.3" }
+libsodium-sys-stable = { version = "1.22.4" }
 thiserror = "1.0"
 ctor = "0.5"
 libc = "0.2"
