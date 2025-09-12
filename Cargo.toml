@@ -17,9 +17,6 @@ include = [
     "README.md",
     "LICENSE",
 ]
-exclude = [
-    "benches/**/*",
-]
 rust-version = "1.60.0"
 
 [dependencies]
@@ -48,51 +45,3 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dev-dependencies]
 benchmark-simple = "0.1.10"
-
-[[bench]]
-name = "crypto_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_kdf_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_pwhash_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_aead_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_generichash_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_hash_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_auth_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_secretbox_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_box_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_sign_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_kx_benchmarks"
-harness = false
-
-[[bench]]
-name = "crypto_secretstream_benchmarks"
-harness = false
