@@ -993,13 +993,13 @@ mod tests {
         assert!(Key::try_from(&invalid_bytes[..]).is_err());
 
         // Test From<[u8; KEYBYTES]>
-        let array = [0x43; KEYBYTES];
-        let key2 = Key::from(array);
-        assert_eq!(key2.as_bytes(), &array);
+        let bytes = [0x43; KEYBYTES];
+        let key2 = Key::from(bytes);
+        assert_eq!(key2.as_bytes(), &bytes);
 
         // Test From<Key> for [u8; KEYBYTES]
         let extracted: [u8; KEYBYTES] = key2.into();
-        assert_eq!(extracted, array);
+        assert_eq!(extracted, bytes);
 
         // Test AsRef<[u8]>
         let key3 = Key::generate();

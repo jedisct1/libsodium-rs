@@ -104,7 +104,7 @@ pub const BYTES_MAX: usize = libsodium_sys::crypto_kdf_BYTES_MAX as usize;
 
 /// Number of bytes in a context (8)
 ///
-/// The context is a fixed-size byte array that should be unique to the application.
+/// The context is a fixed-size bytes that should be unique to the application.
 /// It helps ensure that subkeys derived in different contexts are independent.
 pub const CONTEXTBYTES: usize = libsodium_sys::crypto_kdf_CONTEXTBYTES as usize;
 
@@ -1543,8 +1543,8 @@ mod tests {
         assert!(Key::try_from(&invalid_bytes[..]).is_err());
 
         // Test From<[u8; KEYBYTES]>
-        let key_from_array = Key::from(bytes);
-        assert_eq!(key_from_array.as_ref(), &bytes);
+        let key_from_bytes = Key::from(bytes);
+        assert_eq!(key_from_bytes.as_ref(), &bytes);
 
         // Test From<Key> for [u8; KEYBYTES]
         let key = Key::from(bytes);
@@ -1569,8 +1569,8 @@ mod tests {
         assert!(blake2b::Key::try_from(&invalid_bytes[..]).is_err());
 
         // Test From<[u8; KEYBYTES]>
-        let key_from_array = blake2b::Key::from(bytes);
-        assert_eq!(key_from_array.as_ref(), &bytes);
+        let key_from_bytes = blake2b::Key::from(bytes);
+        assert_eq!(key_from_bytes.as_ref(), &bytes);
 
         // Test From<Key> for [u8; KEYBYTES]
         let key = blake2b::Key::from(bytes);
@@ -1595,8 +1595,8 @@ mod tests {
         assert!(hkdf::sha256::Prk::try_from(&invalid_bytes[..]).is_err());
 
         // Test From<[u8; KEYBYTES]>
-        let prk_from_array = hkdf::sha256::Prk::from(bytes);
-        assert_eq!(prk_from_array.as_ref(), &bytes);
+        let prk_from_bytes = hkdf::sha256::Prk::from(bytes);
+        assert_eq!(prk_from_bytes.as_ref(), &bytes);
 
         // Test From<Prk> for [u8; KEYBYTES]
         let prk = hkdf::sha256::Prk::from(bytes);
@@ -1621,8 +1621,8 @@ mod tests {
         assert!(hkdf::sha512::Prk::try_from(&invalid_bytes[..]).is_err());
 
         // Test From<[u8; KEYBYTES]>
-        let prk_from_array = hkdf::sha512::Prk::from(bytes);
-        assert_eq!(prk_from_array.as_ref(), &bytes);
+        let prk_from_bytes = hkdf::sha512::Prk::from(bytes);
+        assert_eq!(prk_from_bytes.as_ref(), &bytes);
 
         // Test From<Prk> for [u8; KEYBYTES]
         let prk = hkdf::sha512::Prk::from(bytes);

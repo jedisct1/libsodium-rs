@@ -752,14 +752,14 @@ mod tests {
     }
 
     #[test]
-    fn test_public_key_from_array() {
+    fn test_public_key_from_bytes() {
         let bytes = [42u8; PUBLICKEYBYTES];
         let public_key = PublicKey::from(bytes);
         assert_eq!(public_key.as_bytes(), &bytes);
     }
 
     #[test]
-    fn test_public_key_into_array() {
+    fn test_public_key_into_bytes() {
         let bytes = [42u8; PUBLICKEYBYTES];
         let public_key = PublicKey::from(bytes);
         let array: [u8; PUBLICKEYBYTES] = public_key.into();
@@ -791,14 +791,14 @@ mod tests {
     }
 
     #[test]
-    fn test_secret_key_from_array() {
+    fn test_secret_key_from_bytes() {
         let bytes = [42u8; SECRETKEYBYTES];
         let secret_key = SecretKey::from(bytes);
         assert_eq!(secret_key.as_bytes(), &bytes);
     }
 
     #[test]
-    fn test_secret_key_into_array() {
+    fn test_secret_key_into_bytes() {
         let bytes = [42u8; SECRETKEYBYTES];
         let secret_key = SecretKey::from(bytes);
         let array: [u8; SECRETKEYBYTES] = secret_key.into();

@@ -281,7 +281,7 @@ pub fn increment_be(n: &mut [u8]) {
 
 /// Add two numbers stored as big-endian bytes
 ///
-/// This function adds two numbers stored as big-endian byte arrays. The result
+/// This function adds two numbers stored as big-endian bytess. The result
 /// is stored in the first array (`a`).
 ///
 /// ## Example
@@ -312,7 +312,7 @@ pub fn add_be(a: &mut [u8], b: &[u8]) {
 /// Subtract one number from another, both stored as big-endian bytes
 ///
 /// This function subtracts the second number (`b`) from the first number (`a`),
-/// both stored as big-endian byte arrays. The result is stored in the first array (`a`).
+/// both stored as big-endian bytess. The result is stored in the first array (`a`).
 ///
 /// ## Example
 ///
@@ -339,9 +339,9 @@ pub fn sub_be(a: &mut [u8], b: &[u8]) {
     }
 }
 
-/// Check if a byte array is all zeros
+/// Check if bytes is all zeros
 ///
-/// This function checks if a byte array contains only zeros. It is designed to be
+/// This function checks if bytes contains only zeros. It is designed to be
 /// constant-time regardless of the input data, which is important for security-sensitive
 /// applications.
 ///
@@ -359,7 +359,7 @@ pub fn sub_be(a: &mut [u8], b: &[u8]) {
 /// ```
 ///
 /// # Arguments
-/// * `n` - The byte array to check
+/// * `n` - The bytes to check
 ///
 /// # Returns
 /// * `bool` - `true` if the array contains only zeros, `false` otherwise
@@ -367,9 +367,9 @@ pub fn is_zero(n: &[u8]) -> bool {
     unsafe { libsodium_sys::sodium_is_zero(n.as_ptr(), n.len()) == 1 }
 }
 
-/// Compare two byte arrays in lexicographical order
+/// Compare two bytess in lexicographical order
 ///
-/// This function compares two byte arrays in lexicographical order. It returns -1 if
+/// This function compares two bytess in lexicographical order. It returns -1 if
 /// the first array is less than the second, 1 if the first array is greater than the
 /// second, and 0 if they are equal.
 ///
@@ -389,8 +389,8 @@ pub fn is_zero(n: &[u8]) -> bool {
 /// ```
 ///
 /// # Arguments
-/// * `a` - First byte array to compare
-/// * `b` - Second byte array to compare
+/// * `a` - First bytes to compare
+/// * `b` - Second bytes to compare
 ///
 /// # Returns
 /// * `i32` - -1 if a < b, 1 if a > b, 0 if a == b
@@ -403,7 +403,7 @@ pub fn compare(a: &[u8], b: &[u8]) -> i32 {
 
 /// Convert bytes to a hexadecimal string
 ///
-/// This function converts a byte array to a hexadecimal string representation.
+/// This function converts bytes to a hexadecimal string representation.
 /// Each byte is represented by two hexadecimal characters.
 ///
 /// ## Example
@@ -419,7 +419,7 @@ pub fn compare(a: &[u8], b: &[u8]) -> i32 {
 /// ```
 ///
 /// # Arguments
-/// * `bin` - The byte array to convert
+/// * `bin` - The bytes to convert
 ///
 /// # Returns
 /// * `String` - The hexadecimal string representation
@@ -468,7 +468,7 @@ pub fn base64_encoded_len(bin_len: usize, variant: i32) -> usize {
 
 /// Convert bytes to a Base64 string
 ///
-/// This function converts a byte array to a Base64 string representation.
+/// This function converts bytes to a Base64 string representation.
 /// Different encoding variants are supported, including standard Base64 and
 /// URL-safe Base64, with or without padding.
 ///
@@ -490,7 +490,7 @@ pub fn base64_encoded_len(bin_len: usize, variant: i32) -> usize {
 /// ```
 ///
 /// # Arguments
-/// * `bin` - The byte array to convert
+/// * `bin` - The bytes to convert
 /// * `variant` - The Base64 encoding variant to use
 ///
 /// # Returns

@@ -66,7 +66,7 @@ pub const SCALARBYTES: usize = libsodium_sys::crypto_scalarmult_ed25519_SCALARBY
 /// Computes a shared secret using Ed25519
 ///
 /// This function multiplies a point `public_key` by a scalar `secret_key` (with clamping)
-/// and puts the Y coordinate of the resulting point into the returned array.
+/// and puts the Y coordinate of the resulting point into the returned bytes.
 ///
 /// Note that the scalar is "clamped" (the 3 low bits are cleared to make it a multiple
 /// of the cofactor, bit 254 is set and bit 255 is cleared to respect the original design).
@@ -150,7 +150,7 @@ pub fn scalarmult(secret_key: &[u8], public_key: &[u8]) -> Result<[u8; BYTES]> {
 /// Computes a shared secret using Ed25519 without clamping the secret key
 ///
 /// This function multiplies a point `public_key` by a scalar `secret_key` (without clamping)
-/// and puts the Y coordinate of the resulting point into the returned array.
+/// and puts the Y coordinate of the resulting point into the returned bytes.
 ///
 /// WARNING: This function skips the clamping operation, which can be dangerous in most
 /// applications. Only use this function if you fully understand the security implications
@@ -236,7 +236,7 @@ pub fn scalarmult_noclamp(secret_key: &[u8], public_key: &[u8]) -> Result<[u8; B
 /// Multiplies the Ed25519 base point by a scalar with clamping
 ///
 /// This function multiplies the Ed25519 base point by a scalar (with clamping)
-/// and puts the Y coordinate of the resulting point into the returned array.
+/// and puts the Y coordinate of the resulting point into the returned bytes.
 ///
 /// This operation can be used to derive a public key from a secret key, though
 /// the encoding differs from the standard Ed25519 public key encoding used for signatures.
@@ -307,7 +307,7 @@ pub fn scalarmult_base(secret_key: &[u8]) -> Result<[u8; BYTES]> {
 /// Multiplies the Ed25519 base point by a scalar without clamping
 ///
 /// This function multiplies the Ed25519 base point by a scalar (without clamping)
-/// and puts the Y coordinate of the resulting point into the returned array.
+/// and puts the Y coordinate of the resulting point into the returned bytes.
 ///
 /// WARNING: This function skips the clamping operation, which can be dangerous in most
 /// applications. Only use this function if you fully understand the security implications

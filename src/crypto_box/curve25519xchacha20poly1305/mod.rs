@@ -138,21 +138,12 @@ impl Nonce {
         &self.0
     }
 
-    /// Get a reference to the underlying byte array
-    ///
-    /// ## Returns
-    ///
-    /// * `&[u8; NONCEBYTES]` - A reference to the nonce bytes as an array
-    pub fn as_array(&self) -> &[u8; NONCEBYTES] {
-        &self.0
-    }
-
     /// Get a mutable reference to the underlying byte array
     ///
     /// ## Returns
     ///
     /// * `&mut [u8; NONCEBYTES]` - A mutable reference to the nonce bytes
-    pub fn as_array_mut(&mut self) -> &mut [u8; NONCEBYTES] {
+    pub fn as_bytes_mut(&mut self) -> &mut [u8; NONCEBYTES] {
         &mut self.0
     }
 
@@ -165,7 +156,7 @@ impl Nonce {
     /// ## Returns
     ///
     /// * `Self` - A new nonce
-    pub const fn from_array(bytes: [u8; NONCEBYTES]) -> Self {
+    pub const fn from_bytes_exact(bytes: [u8; NONCEBYTES]) -> Self {
         Self(bytes)
     }
 }
@@ -224,15 +215,10 @@ impl PublicKey {
     }
 
     /// Get the bytes of the public key
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-
-    /// Get a reference to the underlying byte array
     ///
     /// # Returns
-    /// * `&[u8; PUBLICKEYBYTES]` - A reference to the public key bytes as an array
-    pub fn as_array(&self) -> &[u8; PUBLICKEYBYTES] {
+    /// * `&[u8; PUBLICKEYBYTES]` - A reference to the public key bytes
+    pub fn as_bytes(&self) -> &[u8; PUBLICKEYBYTES] {
         &self.0
     }
 
@@ -243,7 +229,7 @@ impl PublicKey {
     ///
     /// # Returns
     /// * `Self` - A new public key
-    pub const fn from_array(bytes: [u8; PUBLICKEYBYTES]) -> Self {
+    pub const fn from_bytes_exact(bytes: [u8; PUBLICKEYBYTES]) -> Self {
         Self(bytes)
     }
 }
@@ -293,15 +279,10 @@ impl SecretKey {
     }
 
     /// Get the bytes of the secret key
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-
-    /// Get a reference to the underlying byte array
     ///
     /// # Returns
-    /// * `&[u8; SECRETKEYBYTES]` - A reference to the secret key bytes as an array
-    pub fn as_array(&self) -> &[u8; SECRETKEYBYTES] {
+    /// * `&[u8; SECRETKEYBYTES]` - A reference to the secret key bytes
+    pub fn as_bytes(&self) -> &[u8; SECRETKEYBYTES] {
         &self.0
     }
 
@@ -312,7 +293,7 @@ impl SecretKey {
     ///
     /// # Returns
     /// * `Self` - A new secret key
-    pub const fn from_array(bytes: [u8; SECRETKEYBYTES]) -> Self {
+    pub const fn from_bytes_exact(bytes: [u8; SECRETKEYBYTES]) -> Self {
         Self(bytes)
     }
 }
@@ -801,13 +782,13 @@ mod tests {
         assert!(Nonce::try_from(&invalid_bytes[..]).is_err());
 
         // Test From<[u8; NONCEBYTES]>
-        let array = [0x43; NONCEBYTES];
-        let nonce2 = Nonce::from(array);
-        assert_eq!(nonce2.as_bytes(), &array);
+        let bytes = [0x43; NONCEBYTES];
+        let nonce2 = Nonce::from(bytes);
+        assert_eq!(nonce2.as_bytes(), &bytes);
 
         // Test From<Nonce> for [u8; NONCEBYTES]
         let extracted: [u8; NONCEBYTES] = nonce2.into();
-        assert_eq!(extracted, array);
+        assert_eq!(extracted, bytes);
 
         // Test AsRef<[u8]>
         let nonce3 = Nonce::generate();
@@ -827,13 +808,13 @@ mod tests {
         assert!(PublicKey::try_from(&invalid_bytes[..]).is_err());
 
         // Test From<[u8; PUBLICKEYBYTES]>
-        let array = [0x43; PUBLICKEYBYTES];
-        let key2 = PublicKey::from(array);
-        assert_eq!(key2.as_bytes(), &array);
+        let bytes = [0x43; PUBLICKEYBYTES];
+        let key2 = PublicKey::from(bytes);
+        assert_eq!(key2.as_bytes(), &bytes);
 
         // Test From<PublicKey> for [u8; PUBLICKEYBYTES]
         let extracted: [u8; PUBLICKEYBYTES] = key2.into();
-        assert_eq!(extracted, array);
+        assert_eq!(extracted, bytes);
 
         // Test AsRef<[u8]>
         let keypair = KeyPair::generate().unwrap();
@@ -853,13 +834,13 @@ mod tests {
         assert!(SecretKey::try_from(&invalid_bytes[..]).is_err());
 
         // Test From<[u8; SECRETKEYBYTES]>
-        let array = [0x43; SECRETKEYBYTES];
-        let key2 = SecretKey::from(array);
-        assert_eq!(key2.as_bytes(), &array);
+        let bytes = [0x43; SECRETKEYBYTES];
+        let key2 = SecretKey::from(bytes);
+        assert_eq!(key2.as_bytes(), &bytes);
 
         // Test From<SecretKey> for [u8; SECRETKEYBYTES]
         let extracted: [u8; SECRETKEYBYTES] = key2.into();
-        assert_eq!(extracted, array);
+        assert_eq!(extracted, bytes);
 
         // Test AsRef<[u8]>
         let keypair = KeyPair::generate().unwrap();

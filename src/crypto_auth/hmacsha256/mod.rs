@@ -303,14 +303,14 @@ mod tests {
     }
 
     #[test]
-    fn test_key_from_array() {
+    fn test_key_from_bytes() {
         let bytes = [42u8; KEYBYTES];
         let key = Key::from(bytes);
         assert_eq!(key.as_bytes(), &bytes);
     }
 
     #[test]
-    fn test_key_into_array() {
+    fn test_key_into_bytes() {
         let original_bytes = [42u8; KEYBYTES];
         let key = Key::from(original_bytes);
         let bytes: [u8; KEYBYTES] = key.into();

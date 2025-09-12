@@ -57,7 +57,7 @@ pub const SCALARBYTES: usize = libsodium_sys::crypto_scalarmult_ristretto255_SCA
 /// Computes a shared secret using Ristretto255
 ///
 /// This function multiplies an element represented by `public_key` by a scalar `secret_key`
-/// (in the [0..L[ range) and puts the resulting element into the returned array.
+/// (in the [0..L[ range) and puts the resulting element into the returned bytes.
 ///
 /// The Ristretto255 group has prime order L = 2^252 + 27742317777372353535851937790883648493,
 /// which means that all non-identity elements have the same order.
@@ -143,7 +143,7 @@ pub fn scalarmult(secret_key: &[u8], public_key: &[u8]) -> Result<[u8; BYTES]> {
 /// Multiplies the Ristretto255 base point by a scalar
 ///
 /// This function multiplies the generator by a scalar `secret_key` (in the [0..L[ range)
-/// and puts the resulting element into the returned array.
+/// and puts the resulting element into the returned bytes.
 ///
 /// The Ristretto255 base point is the canonical generator of the Ristretto255 group.
 ///

@@ -128,7 +128,7 @@ impl Nonce {
     /// ## Returns
     ///
     /// * `Nonce` - A nonce initialized with the provided bytes
-    pub const fn from_array(bytes: [u8; NONCEBYTES]) -> Self {
+    pub const fn from_bytes_exact(bytes: [u8; NONCEBYTES]) -> Self {
         Self(bytes)
     }
 
@@ -137,7 +137,7 @@ impl Nonce {
     /// ## Returns
     ///
     /// * `&[u8; NONCEBYTES]` - Reference to the nonce bytes
-    pub fn as_array(&self) -> &[u8; NONCEBYTES] {
+    pub fn as_bytes(&self) -> &[u8; NONCEBYTES] {
         &self.0
     }
 
@@ -146,7 +146,7 @@ impl Nonce {
     /// ## Returns
     ///
     /// * `&mut [u8; NONCEBYTES]` - Mutable reference to the nonce bytes
-    pub fn as_array_mut(&mut self) -> &mut [u8; NONCEBYTES] {
+    pub fn as_bytes_mut(&mut self) -> &mut [u8; NONCEBYTES] {
         &mut self.0
     }
 }
@@ -290,32 +290,24 @@ impl PublicKey {
         Ok(PublicKey(key))
     }
 
-    /// Create a public key from a fixed-size byte array
+    /// Create a public key from a fixed-size bytes
     ///
     /// # Arguments
     /// * `bytes` - Byte array of exactly PUBLICKEYBYTES length
     ///
     /// # Returns
     /// * `Self` - A new public key
-    pub const fn from_array(
+    pub const fn from_bytes_exact(
         bytes: [u8; libsodium_sys::crypto_box_PUBLICKEYBYTES as usize],
     ) -> Self {
         Self(bytes)
     }
 
-    /// Get the bytes of the public key
+    /// Get a reference to the underlying bytes
     ///
     /// # Returns
-    /// * `&[u8]` - Reference to the public key bytes
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-
-    /// Get a reference to the underlying byte array
-    ///
-    /// # Returns
-    /// * `&[u8; PUBLICKEYBYTES]` - Reference to the public key bytes as an array
-    pub fn as_array(&self) -> &[u8; libsodium_sys::crypto_box_PUBLICKEYBYTES as usize] {
+    /// * `&[u8; PUBLICKEYBYTES]` - Reference to the public key bytes
+    pub fn as_bytes(&self) -> &[u8; libsodium_sys::crypto_box_PUBLICKEYBYTES as usize] {
         &self.0
     }
 }
@@ -381,32 +373,24 @@ impl SecretKey {
         Ok(SecretKey(key))
     }
 
-    /// Create a secret key from a fixed-size byte array
+    /// Create a secret key from a fixed-size bytes
     ///
     /// # Arguments
     /// * `bytes` - Byte array of exactly SECRETKEYBYTES length
     ///
     /// # Returns
     /// * `Self` - A new secret key
-    pub const fn from_array(
+    pub const fn from_bytes_exact(
         bytes: [u8; libsodium_sys::crypto_box_SECRETKEYBYTES as usize],
     ) -> Self {
         Self(bytes)
     }
 
-    /// Get the bytes of the secret key
+    /// Get a reference to the underlying bytes
     ///
     /// # Returns
-    /// * `&[u8]` - Reference to the secret key bytes
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-
-    /// Get a reference to the underlying byte array
-    ///
-    /// # Returns
-    /// * `&[u8; SECRETKEYBYTES]` - Reference to the secret key bytes as an array
-    pub fn as_array(&self) -> &[u8; libsodium_sys::crypto_box_SECRETKEYBYTES as usize] {
+    /// * `&[u8; SECRETKEYBYTES]` - Reference to the secret key bytes
+    pub fn as_bytes(&self) -> &[u8; libsodium_sys::crypto_box_SECRETKEYBYTES as usize] {
         &self.0
     }
 }
@@ -484,30 +468,22 @@ impl PrecomputedKey {
         Ok(PrecomputedKey(k))
     }
 
-    /// Get the bytes of the precomputed key
+    /// Get a reference to the underlying bytes
     ///
     /// # Returns
-    /// * `&[u8]` - Reference to the precomputed key bytes
-    pub fn as_bytes(&self) -> &[u8] {
+    /// * `&[u8; BEFORENMBYTES]` - Reference to the precomputed key bytes
+    pub fn as_bytes(&self) -> &[u8; BEFORENMBYTES] {
         &self.0
     }
 
-    /// Get a reference to the underlying byte array
-    ///
-    /// # Returns
-    /// * `&[u8; BEFORENMBYTES]` - Reference to the precomputed key bytes as an array
-    pub fn as_array(&self) -> &[u8; BEFORENMBYTES] {
-        &self.0
-    }
-
-    /// Create a precomputed key from a fixed-size byte array
+    /// Create a precomputed key from a fixed-size bytes
     ///
     /// # Arguments
     /// * `bytes` - Byte array of exactly BEFORENMBYTES length
     ///
     /// # Returns
     /// * `Self` - A new precomputed key
-    pub const fn from_array(bytes: [u8; BEFORENMBYTES]) -> Self {
+    pub const fn from_bytes_exact(bytes: [u8; BEFORENMBYTES]) -> Self {
         Self(bytes)
     }
 }
@@ -1930,7 +1906,7 @@ mod tests {
 
         // Test TryFrom<&[u8]>
         let bytes = precomputed.as_bytes();
-        let pk2 = PrecomputedKey::try_from(bytes).unwrap();
+        let pk2 = PrecomputedKey::try_from(&bytes[..]).unwrap();
         assert_eq!(precomputed.as_bytes(), pk2.as_bytes());
 
         // Test invalid length
@@ -1938,13 +1914,13 @@ mod tests {
         assert!(PrecomputedKey::try_from(&invalid_bytes[..]).is_err());
 
         // Test From<[u8; N]>
-        let array: [u8; BEFORENMBYTES] = precomputed.clone().into();
-        let pk3 = PrecomputedKey::from(array);
+        let bytes: [u8; BEFORENMBYTES] = precomputed.clone().into();
+        let pk3 = PrecomputedKey::from(bytes);
         assert_eq!(precomputed.as_bytes(), pk3.as_bytes());
 
         // Test From<PrecomputedKey> for [u8; N]
         let extracted: [u8; BEFORENMBYTES] = precomputed.into();
-        assert_eq!(extracted, array);
+        assert_eq!(extracted, bytes);
 
         // Test AsRef<[u8]>
         let precomputed2 = beforenm(&alice_keypair.public_key, &bob_keypair.secret_key).unwrap();

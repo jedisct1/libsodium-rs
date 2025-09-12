@@ -489,14 +489,14 @@ mod tests {
     }
 
     #[test]
-    fn test_key_from_array() {
+    fn test_key_from_bytes() {
         let bytes = [0x42; KEYBYTES];
         let key = Key::from(bytes);
         assert_eq!(key.as_bytes(), &bytes);
     }
 
     #[test]
-    fn test_key_into_array() {
+    fn test_key_into_bytes() {
         let original_bytes = [0x42; KEYBYTES];
         let key = Key::from(original_bytes);
         let bytes: [u8; KEYBYTES] = key.into();
@@ -530,14 +530,14 @@ mod tests {
     }
 
     #[test]
-    fn test_tag_from_array() {
+    fn test_tag_from_bytes() {
         let bytes = [0x42; BYTES];
         let tag = Tag::from(bytes);
         assert_eq!(tag.as_bytes(), &bytes);
     }
 
     #[test]
-    fn test_tag_into_array() {
+    fn test_tag_into_bytes() {
         let original_bytes = [0x42; BYTES];
         let tag = Tag::from(original_bytes);
         let bytes: [u8; BYTES] = tag.into();

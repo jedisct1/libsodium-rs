@@ -59,11 +59,11 @@ impl Nonce {
         Self(bytes)
     }
 
-    /// Create a nonce from a byte array of the correct length
+    /// Create a nonce from bytes of the correct length
     ///
     /// ## Arguments
     ///
-    /// * `bytes` - A byte array of length NONCEBYTES
+    /// * `bytes` - Bytes of length NONCEBYTES
     ///
     /// ## Returns
     ///
@@ -259,13 +259,13 @@ mod tests {
         assert!(Nonce::try_from(&invalid_bytes[..]).is_err());
 
         // Test From<[u8; NONCEBYTES]>
-        let array = [0x43; NONCEBYTES];
-        let nonce2 = Nonce::from(array);
-        assert_eq!(nonce2.as_bytes(), &array);
+        let bytes = [0x43; NONCEBYTES];
+        let nonce2 = Nonce::from(bytes);
+        assert_eq!(nonce2.as_bytes(), &bytes);
 
         // Test From<Nonce> for [u8; NONCEBYTES]
         let extracted: [u8; NONCEBYTES] = nonce2.into();
-        assert_eq!(extracted, array);
+        assert_eq!(extracted, bytes);
 
         // Test AsRef<[u8]>
         let nonce3 = Nonce::generate();

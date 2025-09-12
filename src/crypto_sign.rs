@@ -422,16 +422,8 @@ impl PublicKey {
     /// Get the bytes of the public key
     ///
     /// # Returns
-    /// * `&[u8]` - A reference to the public key bytes
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-
-    /// Get a reference to the underlying byte array
-    ///
-    /// # Returns
-    /// * `&[u8; PUBLICKEYBYTES]` - A reference to the public key bytes as an array
-    pub fn as_array(&self) -> &[u8; PUBLICKEYBYTES] {
+    /// * `&[u8; PUBLICKEYBYTES]` - A reference to the public key bytes
+    pub fn as_bytes(&self) -> &[u8; PUBLICKEYBYTES] {
         &self.0
     }
 
@@ -442,7 +434,7 @@ impl PublicKey {
     ///
     /// # Returns
     /// * `Self` - A new public key
-    pub const fn from_array(bytes: [u8; PUBLICKEYBYTES]) -> Self {
+    pub const fn from_bytes_exact(bytes: [u8; PUBLICKEYBYTES]) -> Self {
         Self(bytes)
     }
 }
@@ -493,16 +485,8 @@ impl SecretKey {
     /// Get the bytes of the secret key
     ///
     /// # Returns
-    /// * `&[u8]` - A reference to the secret key bytes
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-
-    /// Get a reference to the underlying byte array
-    ///
-    /// # Returns
-    /// * `&[u8; SECRETKEYBYTES]` - A reference to the secret key bytes as an array
-    pub fn as_array(&self) -> &[u8; SECRETKEYBYTES] {
+    /// * `&[u8; SECRETKEYBYTES]` - A reference to the secret key bytes
+    pub fn as_bytes(&self) -> &[u8; SECRETKEYBYTES] {
         &self.0
     }
 
@@ -513,7 +497,7 @@ impl SecretKey {
     ///
     /// # Returns
     /// * `Self` - A new secret key
-    pub const fn from_array(bytes: [u8; SECRETKEYBYTES]) -> Self {
+    pub const fn from_bytes_exact(bytes: [u8; SECRETKEYBYTES]) -> Self {
         Self(bytes)
     }
 }

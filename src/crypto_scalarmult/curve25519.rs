@@ -61,7 +61,7 @@ pub const SCALARBYTES: usize = libsodium_sys::crypto_scalarmult_curve25519_SCALA
 /// Computes a shared secret using Curve25519
 ///
 /// This function multiplies a point `public_key` by a scalar `secret_key`
-/// and puts the resulting element into the returned array.
+/// and puts the resulting element into the returned bytes.
 ///
 /// The secret key is automatically clamped before use, meaning certain bits
 /// are set or cleared to ensure it meets the requirements for Curve25519.
@@ -144,7 +144,7 @@ pub fn scalarmult(secret_key: &[u8], public_key: &[u8]) -> Result<[u8; BYTES]> {
 /// Multiplies the Curve25519 base point by a scalar
 ///
 /// This function multiplies the Curve25519 base point by a scalar `secret_key`
-/// and puts the resulting element into the returned array.
+/// and puts the resulting element into the returned bytes.
 ///
 /// The secret key is automatically clamped before use, meaning certain bits
 /// are set or cleared to ensure it meets the requirements for Curve25519.

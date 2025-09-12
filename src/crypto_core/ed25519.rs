@@ -85,7 +85,7 @@ pub fn is_valid_point(p: &[u8]) -> Result<bool> {
 /// Adds two Ed25519 points
 ///
 /// This function adds the element represented by `p` to the element `q` and
-/// stores the resulting element into the returned array.
+/// stores the resulting element into the returned bytes.
 ///
 /// The addition follows the standard rules for addition on the Edwards curve.
 ///
@@ -123,7 +123,7 @@ pub fn add(p: &[u8], q: &[u8]) -> Vec<u8> {
 /// Subtracts one Ed25519 point from another
 ///
 /// This function subtracts the element represented by `q` from the element `p` and
-/// stores the resulting element into the returned array.
+/// stores the resulting element into the returned bytes.
 ///
 /// The subtraction follows the standard rules for point subtraction on the Edwards curve.
 ///
@@ -229,7 +229,7 @@ pub fn scalar_random() -> Result<[u8; SCALARBYTES]> {
 /// Computes the multiplicative inverse of an Ed25519 scalar
 ///
 /// This function computes the multiplicative inverse of the scalar `s` and stores
-/// the result into the returned array. The inverse is computed modulo L, where L is
+/// the result into the returned bytes. The inverse is computed modulo L, where L is
 /// the order of the Ed25519 group.
 ///
 /// For a scalar s, this computes s^(-1) such that s * s^(-1) ≡ 1 (mod L).
@@ -273,7 +273,7 @@ pub fn scalar_invert(s: &[u8]) -> Result<[u8; SCALARBYTES]> {
 /// Computes the negation of an Ed25519 scalar
 ///
 /// This function computes the negation of the scalar `s` and stores the result
-/// into the returned array.
+/// into the returned bytes.
 ///
 /// # Arguments
 ///
@@ -307,7 +307,7 @@ pub fn scalar_negate(s: &[u8]) -> Result<[u8; SCALARBYTES]> {
 /// Computes the complement of an Ed25519 scalar
 ///
 /// This function computes the complement of the scalar `s` and stores the result
-/// into the returned array.
+/// into the returned bytes.
 ///
 /// # Arguments
 ///
@@ -340,7 +340,7 @@ pub fn scalar_complement(s: &[u8]) -> Result<[u8; SCALARBYTES]> {
 
 /// Adds two Ed25519 scalars
 ///
-/// This function adds the scalars `x` and `y` and stores the result into the returned array.
+/// This function adds the scalars `x` and `y` and stores the result into the returned bytes.
 ///
 /// # Arguments
 ///
@@ -376,7 +376,7 @@ pub fn scalar_add(x: &[u8], y: &[u8]) -> Result<[u8; SCALARBYTES]> {
 /// Subtracts one Ed25519 scalar from another
 ///
 /// This function subtracts the scalar `y` from the scalar `x` and stores the result
-/// into the returned array.
+/// into the returned bytes.
 ///
 /// # Arguments
 ///
