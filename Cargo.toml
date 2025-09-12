@@ -16,7 +16,6 @@ include = [
     "Cargo.toml",
     "README.md",
     "LICENSE",
-    "build.rs",
 ]
 exclude = [
     "benches/**/*",
@@ -26,7 +25,7 @@ rust-version = "1.60.0"
 [dependencies]
 libsodium-sys-stable = { version = "1.22.3" }
 thiserror = "1.0"
-ctor = "0.4"
+ctor = "0.5"
 libc = "0.2"
 ct-codecs = "1.1.6"
 zeroize = { version = "1.8", features = ["zeroize_derive"] }
@@ -97,4 +96,3 @@ harness = false
 [[bench]]
 name = "crypto_secretstream_benchmarks"
 harness = false
-
