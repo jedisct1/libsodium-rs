@@ -137,6 +137,37 @@ impl Nonce {
     pub fn as_bytes(&self) -> &[u8; NONCEBYTES] {
         &self.0
     }
+
+    /// Get a reference to the underlying byte array
+    ///
+    /// ## Returns
+    ///
+    /// * `&[u8; NONCEBYTES]` - A reference to the nonce bytes as an array
+    pub fn as_array(&self) -> &[u8; NONCEBYTES] {
+        &self.0
+    }
+
+    /// Get a mutable reference to the underlying byte array
+    ///
+    /// ## Returns
+    ///
+    /// * `&mut [u8; NONCEBYTES]` - A mutable reference to the nonce bytes
+    pub fn as_array_mut(&mut self) -> &mut [u8; NONCEBYTES] {
+        &mut self.0
+    }
+
+    /// Create a nonce from a fixed-size byte array
+    ///
+    /// ## Arguments
+    ///
+    /// * `bytes` - Byte array of exactly NONCEBYTES length
+    ///
+    /// ## Returns
+    ///
+    /// * `Self` - A new nonce
+    pub const fn from_array(bytes: [u8; NONCEBYTES]) -> Self {
+        Self(bytes)
+    }
 }
 
 impl AsRef<[u8]> for Nonce {
@@ -196,6 +227,25 @@ impl PublicKey {
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
     }
+
+    /// Get a reference to the underlying byte array
+    ///
+    /// # Returns
+    /// * `&[u8; PUBLICKEYBYTES]` - A reference to the public key bytes as an array
+    pub fn as_array(&self) -> &[u8; PUBLICKEYBYTES] {
+        &self.0
+    }
+
+    /// Create a public key from a fixed-size byte array
+    ///
+    /// # Arguments
+    /// * `bytes` - Byte array of exactly PUBLICKEYBYTES length
+    ///
+    /// # Returns
+    /// * `Self` - A new public key
+    pub const fn from_array(bytes: [u8; PUBLICKEYBYTES]) -> Self {
+        Self(bytes)
+    }
 }
 
 impl AsRef<[u8]> for PublicKey {
@@ -245,6 +295,25 @@ impl SecretKey {
     /// Get the bytes of the secret key
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+
+    /// Get a reference to the underlying byte array
+    ///
+    /// # Returns
+    /// * `&[u8; SECRETKEYBYTES]` - A reference to the secret key bytes as an array
+    pub fn as_array(&self) -> &[u8; SECRETKEYBYTES] {
+        &self.0
+    }
+
+    /// Create a secret key from a fixed-size byte array
+    ///
+    /// # Arguments
+    /// * `bytes` - Byte array of exactly SECRETKEYBYTES length
+    ///
+    /// # Returns
+    /// * `Self` - A new secret key
+    pub const fn from_array(bytes: [u8; SECRETKEYBYTES]) -> Self {
+        Self(bytes)
     }
 }
 

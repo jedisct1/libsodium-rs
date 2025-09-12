@@ -491,6 +491,25 @@ impl PrecomputedKey {
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
     }
+
+    /// Get a reference to the underlying byte array
+    ///
+    /// # Returns
+    /// * `&[u8; BEFORENMBYTES]` - Reference to the precomputed key bytes as an array
+    pub fn as_array(&self) -> &[u8; BEFORENMBYTES] {
+        &self.0
+    }
+
+    /// Create a precomputed key from a fixed-size byte array
+    ///
+    /// # Arguments
+    /// * `bytes` - Byte array of exactly BEFORENMBYTES length
+    ///
+    /// # Returns
+    /// * `Self` - A new precomputed key
+    pub const fn from_array(bytes: [u8; BEFORENMBYTES]) -> Self {
+        Self(bytes)
+    }
 }
 
 impl AsRef<[u8]> for PrecomputedKey {
