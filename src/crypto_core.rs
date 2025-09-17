@@ -1143,6 +1143,347 @@ pub mod ristretto255 {
         }
         Ok(r)
     }
+
+    /// Generate a random scalar for the Ristretto255 group
+    ///
+    /// This function generates a random scalar suitable for use with the Ristretto255 group.
+    /// The scalar is uniformly distributed between 0 and L-1, where L is the order of the
+    /// Ristretto255 group.
+    ///
+    /// # Returns
+    /// * `[u8; SCALARBYTES]` - A random scalar
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use libsodium_rs::crypto_core::ristretto255;
+    ///
+    /// // Generate a random scalar
+    /// let scalar = ristretto255::scalar_random();
+    ///
+    /// // Use the scalar for operations
+    /// let point = ristretto255::random().unwrap();
+    /// let result = ristretto255::scalar_mul(&point, &scalar).unwrap();
+    /// ```
+    pub fn scalar_random() -> [u8; SCALARBYTES] {
+        let mut r = [0u8; SCALARBYTES];
+        unsafe {
+            libsodium_sys::crypto_core_ristretto255_scalar_random(r.as_mut_ptr());
+        }
+        r
+    }
+
+    /// Compute the multiplicative inverse of a scalar
+    ///
+    /// This function computes the multiplicative inverse of a scalar modulo L, where L is the
+    /// order of the Ristretto255 group. The inverse s^(-1) of a scalar s is such that
+    /// s * s^(-1) ≡ 1 (mod L).
+    ///
+    /// # Arguments
+    /// * `s` - Scalar to invert (must be exactly `SCALARBYTES` length)
+    ///
+    /// # Returns
+    /// * `Result<[u8; SCALARBYTES]>` - The multiplicative inverse of the scalar or an error
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The scalar has an invalid length
+    /// - The scalar is 0, which has no multiplicative inverse
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use libsodium_rs::crypto_core::ristretto255;
+    ///
+    /// // Generate a random non-zero scalar
+    /// let mut scalar = ristretto255::scalar_random();
+    /// scalar[0] |= 1; // Ensure it's not zero
+    ///
+    /// // Compute its inverse
+    /// let inverse = ristretto255::scalar_invert(&scalar).unwrap();
+    ///
+    /// // Verify: scalar * inverse ≡ 1 (mod L)
+    /// // This would require scalar_mul to verify
+    /// ```
+    pub fn scalar_invert(s: &[u8]) -> Result<[u8; SCALARBYTES]> {
+        if s.len() != SCALARBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "invalid scalar length: expected {}, got {}",
+                SCALARBYTES,
+                s.len()
+            )));
+        }
+
+        let mut recip = [0u8; SCALARBYTES];
+        let result = unsafe {
+            libsodium_sys::crypto_core_ristretto255_scalar_invert(recip.as_mut_ptr(), s.as_ptr())
+        };
+
+        if result != 0 {
+            return Err(SodiumError::OperationError(
+                "scalar inversion failed (scalar may be 0)".into(),
+            ));
+        }
+
+        Ok(recip)
+    }
+
+    /// Negate a scalar
+    ///
+    /// This function computes the negation of a scalar modulo L, where L is the order of the
+    /// Ristretto255 group. The negation -s of a scalar s is such that s + (-s) ≡ 0 (mod L).
+    ///
+    /// # Arguments
+    /// * `s` - Scalar to negate (must be exactly `SCALARBYTES` length)
+    ///
+    /// # Returns
+    /// * `Result<[u8; SCALARBYTES]>` - The negation of the scalar or an error
+    ///
+    /// # Errors
+    /// Returns an error if the scalar has an invalid length
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use libsodium_rs::crypto_core::ristretto255;
+    ///
+    /// // Generate a random scalar
+    /// let scalar = ristretto255::scalar_random();
+    ///
+    /// // Compute its negation
+    /// let negation = ristretto255::scalar_negate(&scalar).unwrap();
+    ///
+    /// // Verify: scalar + negation ≡ 0 (mod L)
+    /// // This would require scalar_add to verify
+    /// ```
+    pub fn scalar_negate(s: &[u8]) -> Result<[u8; SCALARBYTES]> {
+        if s.len() != SCALARBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "invalid scalar length: expected {}, got {}",
+                SCALARBYTES,
+                s.len()
+            )));
+        }
+
+        let mut neg = [0u8; SCALARBYTES];
+        unsafe {
+            libsodium_sys::crypto_core_ristretto255_scalar_negate(neg.as_mut_ptr(), s.as_ptr());
+        }
+
+        Ok(neg)
+    }
+
+    /// Compute the complement of a scalar
+    ///
+    /// This function computes the complement of a scalar modulo L, where L is the order of the
+    /// Ristretto255 group. The complement of a scalar s is defined as L - 1 - s.
+    ///
+    /// # Arguments
+    /// * `s` - Scalar to complement (must be exactly `SCALARBYTES` length)
+    ///
+    /// # Returns
+    /// * `Result<[u8; SCALARBYTES]>` - The complement of the scalar or an error
+    ///
+    /// # Errors
+    /// Returns an error if the scalar has an invalid length
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use libsodium_rs::crypto_core::ristretto255;
+    ///
+    /// // Generate a random scalar
+    /// let scalar = ristretto255::scalar_random();
+    ///
+    /// // Compute its complement
+    /// let complement = ristretto255::scalar_complement(&scalar).unwrap();
+    /// ```
+    pub fn scalar_complement(s: &[u8]) -> Result<[u8; SCALARBYTES]> {
+        if s.len() != SCALARBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "invalid scalar length: expected {}, got {}",
+                SCALARBYTES,
+                s.len()
+            )));
+        }
+
+        let mut comp = [0u8; SCALARBYTES];
+        unsafe {
+            libsodium_sys::crypto_core_ristretto255_scalar_complement(
+                comp.as_mut_ptr(),
+                s.as_ptr(),
+            );
+        }
+
+        Ok(comp)
+    }
+
+    /// Add two scalars
+    ///
+    /// This function adds two scalars modulo L, where L is the order of the Ristretto255 group.
+    ///
+    /// # Arguments
+    /// * `x` - First scalar (must be exactly `SCALARBYTES` length)
+    /// * `y` - Second scalar (must be exactly `SCALARBYTES` length)
+    ///
+    /// # Returns
+    /// * `Result<[u8; SCALARBYTES]>` - The sum of the scalars or an error
+    ///
+    /// # Errors
+    /// Returns an error if either scalar has an invalid length
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use libsodium_rs::crypto_core::ristretto255;
+    ///
+    /// // Generate two random scalars
+    /// let x = ristretto255::scalar_random();
+    /// let y = ristretto255::scalar_random();
+    ///
+    /// // Add them
+    /// let sum = ristretto255::scalar_add(&x, &y).unwrap();
+    /// ```
+    pub fn scalar_add(x: &[u8], y: &[u8]) -> Result<[u8; SCALARBYTES]> {
+        if x.len() != SCALARBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "invalid first scalar length: expected {}, got {}",
+                SCALARBYTES,
+                x.len()
+            )));
+        }
+
+        if y.len() != SCALARBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "invalid second scalar length: expected {}, got {}",
+                SCALARBYTES,
+                y.len()
+            )));
+        }
+
+        let mut z = [0u8; SCALARBYTES];
+        unsafe {
+            libsodium_sys::crypto_core_ristretto255_scalar_add(
+                z.as_mut_ptr(),
+                x.as_ptr(),
+                y.as_ptr(),
+            );
+        }
+
+        Ok(z)
+    }
+
+    /// Subtract one scalar from another
+    ///
+    /// This function subtracts one scalar from another modulo L, where L is the order of the
+    /// Ristretto255 group.
+    ///
+    /// # Arguments
+    /// * `x` - First scalar (must be exactly `SCALARBYTES` length)
+    /// * `y` - Second scalar to subtract (must be exactly `SCALARBYTES` length)
+    ///
+    /// # Returns
+    /// * `Result<[u8; SCALARBYTES]>` - The difference of the scalars (x - y) or an error
+    ///
+    /// # Errors
+    /// Returns an error if either scalar has an invalid length
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use libsodium_rs::crypto_core::ristretto255;
+    ///
+    /// // Generate two random scalars
+    /// let x = ristretto255::scalar_random();
+    /// let y = ristretto255::scalar_random();
+    ///
+    /// // Subtract y from x
+    /// let difference = ristretto255::scalar_sub(&x, &y).unwrap();
+    /// ```
+    pub fn scalar_sub(x: &[u8], y: &[u8]) -> Result<[u8; SCALARBYTES]> {
+        if x.len() != SCALARBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "invalid first scalar length: expected {}, got {}",
+                SCALARBYTES,
+                x.len()
+            )));
+        }
+
+        if y.len() != SCALARBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "invalid second scalar length: expected {}, got {}",
+                SCALARBYTES,
+                y.len()
+            )));
+        }
+
+        let mut z = [0u8; SCALARBYTES];
+        unsafe {
+            libsodium_sys::crypto_core_ristretto255_scalar_sub(
+                z.as_mut_ptr(),
+                x.as_ptr(),
+                y.as_ptr(),
+            );
+        }
+
+        Ok(z)
+    }
+
+    /// Multiply two scalars
+    ///
+    /// This function multiplies two scalars modulo L, where L is the order of the Ristretto255 group.
+    /// Note that this is scalar-scalar multiplication, not scalar-point multiplication.
+    ///
+    /// # Arguments
+    /// * `x` - First scalar (must be exactly `SCALARBYTES` length)
+    /// * `y` - Second scalar (must be exactly `SCALARBYTES` length)
+    ///
+    /// # Returns
+    /// * `Result<[u8; SCALARBYTES]>` - The product of the scalars or an error
+    ///
+    /// # Errors
+    /// Returns an error if either scalar has an invalid length
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use libsodium_rs::crypto_core::ristretto255;
+    ///
+    /// // Generate two random scalars
+    /// let x = ristretto255::scalar_random();
+    /// let y = ristretto255::scalar_random();
+    ///
+    /// // Multiply them
+    /// let product = ristretto255::scalar_multiply(&x, &y).unwrap();
+    /// ```
+    pub fn scalar_multiply(x: &[u8], y: &[u8]) -> Result<[u8; SCALARBYTES]> {
+        if x.len() != SCALARBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "invalid first scalar length: expected {}, got {}",
+                SCALARBYTES,
+                x.len()
+            )));
+        }
+
+        if y.len() != SCALARBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "invalid second scalar length: expected {}, got {}",
+                SCALARBYTES,
+                y.len()
+            )));
+        }
+
+        let mut z = [0u8; SCALARBYTES];
+        unsafe {
+            libsodium_sys::crypto_core_ristretto255_scalar_mul(
+                z.as_mut_ptr(),
+                x.as_ptr(),
+                y.as_ptr(),
+            );
+        }
+
+        Ok(z)
+    }
 }
 
 /// HChaCha20 core function operations
@@ -2106,6 +2447,111 @@ mod tests {
         let sum = ristretto255::add(&point, &point2).unwrap();
         assert_eq!(sum.len(), ristretto255::BYTES);
         assert!(ristretto255::is_valid_point(&sum).unwrap());
+    }
+
+    #[test]
+    fn test_ristretto255_scalar_operations() {
+        // Test scalar random generation
+        let scalar1 = ristretto255::scalar_random();
+        let scalar2 = ristretto255::scalar_random();
+        assert_eq!(scalar1.len(), ristretto255::SCALARBYTES);
+        assert_eq!(scalar2.len(), ristretto255::SCALARBYTES);
+
+        // Test scalar addition
+        let sum = ristretto255::scalar_add(&scalar1, &scalar2).unwrap();
+        assert_eq!(sum.len(), ristretto255::SCALARBYTES);
+
+        // Test scalar subtraction
+        let diff = ristretto255::scalar_sub(&scalar1, &scalar2).unwrap();
+        assert_eq!(diff.len(), ristretto255::SCALARBYTES);
+
+        // Test scalar multiplication
+        let product = ristretto255::scalar_multiply(&scalar1, &scalar2).unwrap();
+        assert_eq!(product.len(), ristretto255::SCALARBYTES);
+
+        // Test scalar negation
+        let neg = ristretto255::scalar_negate(&scalar1).unwrap();
+        assert_eq!(neg.len(), ristretto255::SCALARBYTES);
+
+        // Test scalar complement
+        let comp = ristretto255::scalar_complement(&scalar1).unwrap();
+        assert_eq!(comp.len(), ristretto255::SCALARBYTES);
+
+        // Test scalar inversion (ensure non-zero scalar)
+        let mut non_zero = ristretto255::scalar_random();
+        non_zero[0] |= 1; // Ensure it's not zero
+        let inv = ristretto255::scalar_invert(&non_zero).unwrap();
+        assert_eq!(inv.len(), ristretto255::SCALARBYTES);
+
+        // Test scalar reduction
+        let non_reduced = random::bytes(ristretto255::NONREDUCEDSCALARBYTES);
+        let reduced = ristretto255::scalar_reduce(&non_reduced).unwrap();
+        assert_eq!(reduced.len(), ristretto255::SCALARBYTES);
+    }
+
+    #[test]
+    fn test_ristretto255_scalar_arithmetic_properties() {
+        // Generate random scalars
+        let x = ristretto255::scalar_random();
+        let y = ristretto255::scalar_random();
+        let z = ristretto255::scalar_random();
+
+        // Test associativity: (x + y) + z = x + (y + z)
+        let sum1 = ristretto255::scalar_add(&x, &y).unwrap();
+        let sum1_z = ristretto255::scalar_add(&sum1, &z).unwrap();
+
+        let sum2 = ristretto255::scalar_add(&y, &z).unwrap();
+        let x_sum2 = ristretto255::scalar_add(&x, &sum2).unwrap();
+
+        assert_eq!(sum1_z, x_sum2);
+
+        // Test commutativity: x + y = y + x
+        let xy = ristretto255::scalar_add(&x, &y).unwrap();
+        let yx = ristretto255::scalar_add(&y, &x).unwrap();
+        assert_eq!(xy, yx);
+
+        // Test distributivity: x * (y + z) = (x * y) + (x * z)
+        let y_plus_z = ristretto255::scalar_add(&y, &z).unwrap();
+        let x_times_yz = ristretto255::scalar_multiply(&x, &y_plus_z).unwrap();
+
+        let xy_prod = ristretto255::scalar_multiply(&x, &y).unwrap();
+        let xz_prod = ristretto255::scalar_multiply(&x, &z).unwrap();
+        let xy_plus_xz = ristretto255::scalar_add(&xy_prod, &xz_prod).unwrap();
+
+        assert_eq!(x_times_yz, xy_plus_xz);
+
+        // Test negation: x + (-x) should result in zero
+        let neg_x = ristretto255::scalar_negate(&x).unwrap();
+        let x_plus_negx = ristretto255::scalar_add(&x, &neg_x).unwrap();
+
+        // Zero scalar should multiply to zero
+        let zero_times_y = ristretto255::scalar_multiply(&x_plus_negx, &y).unwrap();
+        let y_times_zero = ristretto255::scalar_multiply(&y, &x_plus_negx).unwrap();
+        assert_eq!(zero_times_y, y_times_zero);
+    }
+
+    #[test]
+    fn test_ristretto255_scalar_inversion() {
+        // Generate a non-zero scalar
+        let mut scalar = ristretto255::scalar_random();
+        scalar[0] |= 1; // Ensure non-zero
+
+        // Compute inverse
+        let inverse = ristretto255::scalar_invert(&scalar).unwrap();
+
+        // Verify scalar * inverse = 1
+        let product = ristretto255::scalar_multiply(&scalar, &inverse).unwrap();
+
+        // The product should be 1 (identity element)
+        // In little-endian representation, 1 is [1, 0, 0, ...]
+        assert_eq!(product[0], 1);
+        for i in 1..ristretto255::SCALARBYTES {
+            assert_eq!(product[i], 0);
+        }
+
+        // Test that inverting zero fails
+        let zero = [0u8; ristretto255::SCALARBYTES];
+        assert!(ristretto255::scalar_invert(&zero).is_err());
     }
 
     #[test]
