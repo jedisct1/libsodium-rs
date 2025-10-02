@@ -1,6 +1,6 @@
 [package]
 name = "libsodium-rs"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["Frank Denis <github@pureftpd.org>"]
 description = "A comprehensive, idiomatic Rust wrapper for libsodium, providing a safe and ergonomic API for cryptographic operations"
