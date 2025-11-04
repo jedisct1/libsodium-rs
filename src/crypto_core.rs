@@ -259,69 +259,6 @@ pub mod ed25519 {
         Ok(r)
     }
 
-    /// Multiply a point by a scalar on the Edwards25519 curve
-    ///
-    /// This function performs scalar multiplication on the Edwards25519 curve. The input point
-    /// must be a valid point on the curve, and the scalar must be a valid scalar. The result
-    /// is also a point on the curve.
-    ///
-    /// # Mathematical Background
-    ///
-    /// Scalar multiplication computes n·P, which is equivalent to adding P to itself n times.
-    /// If P = g^a, then n·P = g^(n·a mod L), where L is the order of the main subgroup.
-    ///
-    /// # Security Considerations
-    ///
-    /// - This operation is performed in constant time to prevent timing attacks
-    /// - The scalar is not clamped, so it must be properly reduced if necessary
-    ///
-    /// # Arguments
-    /// * `p` - Point to multiply (must be exactly `BYTES` length)
-    /// * `n` - Scalar to multiply by (must be exactly `SCALARBYTES` length)
-    ///
-    /// # Returns
-    /// * `Result<[u8; BYTES]>` - The resulting point or an error
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use libsodium_rs::crypto_core::ed25519;
-    ///
-    /// // Multiply a point by a scalar
-    /// let point = [0u8; ed25519::BYTES]; // In practice, this would be a valid point
-    /// let scalar = [0u8; ed25519::SCALARBYTES]; // In practice, this would be a valid scalar
-    ///
-    /// let result = ed25519::scalar_mul(&point, &scalar).unwrap();
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The point has an invalid length
-    /// - The scalar has an invalid length
-    pub fn scalar_mul(p: &[u8], n: &[u8]) -> Result<[u8; BYTES]> {
-        if p.len() != BYTES {
-            return Err(SodiumError::InvalidInput(format!(
-                "invalid point length: expected {}, got {}",
-                BYTES,
-                p.len()
-            )));
-        }
-        if n.len() != SCALARBYTES {
-            return Err(SodiumError::InvalidInput(format!(
-                "invalid scalar length: expected {}, got {}",
-                SCALARBYTES,
-                n.len()
-            )));
-        }
-
-        let mut r = [0u8; BYTES];
-        unsafe {
-            libsodium_sys::crypto_core_ed25519_scalar_mul(r.as_mut_ptr(), p.as_ptr(), n.as_ptr());
-        }
-        Ok(r)
-    }
-
     /// Reduce a scalar to the valid range for the Edwards25519 curve
     ///
     /// This function reduces a 64-byte scalar to a 32-byte scalar modulo L, where L is the
@@ -698,9 +635,9 @@ pub mod ed25519 {
     /// let y = ed25519::scalar_random();
     ///
     /// // Multiply them
-    /// let product = ed25519::scalar_multiply(&x, &y).unwrap();
+    /// let product = ed25519::scalar_mul(&x, &y).unwrap();
     /// ```
-    pub fn scalar_multiply(x: &[u8], y: &[u8]) -> Result<[u8; SCALARBYTES]> {
+    pub fn scalar_mul(x: &[u8], y: &[u8]) -> Result<[u8; SCALARBYTES]> {
         if x.len() != SCALARBYTES {
             return Err(SodiumError::InvalidInput(format!(
                 "invalid first scalar length: expected {}, got {}",
@@ -1043,62 +980,6 @@ pub mod ristretto255 {
         Ok(r)
     }
 
-    /// Scalar multiplication using the Ristretto255 encoding
-    ///
-    /// This function performs scalar multiplication in the Ristretto255 group. The input point
-    /// must be a valid Ristretto255 point, and the scalar must be a valid scalar. The result
-    /// is also a valid Ristretto255 point.
-    ///
-    /// # Mathematical Background
-    ///
-    /// Scalar multiplication computes n·P, which is equivalent to adding P to itself n times.
-    /// If P = g^a, then n·P = g^(n·a mod L), where L is the order of the Ristretto255 group.
-    ///
-    /// # Security Considerations
-    ///
-    /// - This operation is performed in constant time to prevent timing attacks
-    /// - The scalar is not clamped, so it must be properly reduced if necessary
-    ///
-    /// # Arguments
-    /// * `p` - Point to multiply (must be exactly `BYTES` length)
-    /// * `n` - Scalar to multiply by (must be exactly `SCALARBYTES` length)
-    ///
-    /// # Returns
-    /// * `Result<[u8; BYTES]>` - The resulting point or an error
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use libsodium_rs::crypto_core::ristretto255;
-    ///
-    /// // Generate a random point and scalar
-    /// let point = ristretto255::random().unwrap();
-    /// let scalar = [1u8; ristretto255::SCALARBYTES]; // In practice, use a proper scalar
-    ///
-    /// // Multiply the point by the scalar
-    /// let result = ristretto255::scalar_mul(&point, &scalar).unwrap();
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - The point has an invalid length or is not a valid Ristretto255 encoding
-    /// - The scalar has an invalid length
-    pub fn scalar_mul(p: &[u8], n: &[u8]) -> Result<[u8; BYTES]> {
-        if p.len() != BYTES || n.len() != SCALARBYTES {
-            return Err(SodiumError::InvalidInput("invalid input length".into()));
-        }
-        let mut r = [0u8; BYTES];
-        unsafe {
-            libsodium_sys::crypto_core_ristretto255_scalar_mul(
-                r.as_mut_ptr(),
-                n.as_ptr(),
-                p.as_ptr(),
-            );
-        }
-        Ok(r)
-    }
-
     /// Reduce a scalar to the valid range for the Ristretto255 group
     ///
     /// This function reduces a 64-byte scalar to a 32-byte scalar modulo L, where L is the
@@ -1161,9 +1042,7 @@ pub mod ristretto255 {
     /// // Generate a random scalar
     /// let scalar = ristretto255::scalar_random();
     ///
-    /// // Use the scalar for operations
-    /// let point = ristretto255::random().unwrap();
-    /// let result = ristretto255::scalar_mul(&point, &scalar).unwrap();
+    /// // Use the scalar for arithmetic operations like addition, multiplication, etc.
     /// ```
     pub fn scalar_random() -> [u8; SCALARBYTES] {
         let mut r = [0u8; SCALARBYTES];
@@ -1454,9 +1333,9 @@ pub mod ristretto255 {
     /// let y = ristretto255::scalar_random();
     ///
     /// // Multiply them
-    /// let product = ristretto255::scalar_multiply(&x, &y).unwrap();
+    /// let product = ristretto255::scalar_mul(&x, &y).unwrap();
     /// ```
-    pub fn scalar_multiply(x: &[u8], y: &[u8]) -> Result<[u8; SCALARBYTES]> {
+    pub fn scalar_mul(x: &[u8], y: &[u8]) -> Result<[u8; SCALARBYTES]> {
         if x.len() != SCALARBYTES {
             return Err(SodiumError::InvalidInput(format!(
                 "invalid first scalar length: expected {}, got {}",
@@ -2466,7 +2345,7 @@ mod tests {
         assert_eq!(diff.len(), ristretto255::SCALARBYTES);
 
         // Test scalar multiplication
-        let product = ristretto255::scalar_multiply(&scalar1, &scalar2).unwrap();
+        let product = ristretto255::scalar_mul(&scalar1, &scalar2).unwrap();
         assert_eq!(product.len(), ristretto255::SCALARBYTES);
 
         // Test scalar negation
@@ -2512,10 +2391,10 @@ mod tests {
 
         // Test distributivity: x * (y + z) = (x * y) + (x * z)
         let y_plus_z = ristretto255::scalar_add(&y, &z).unwrap();
-        let x_times_yz = ristretto255::scalar_multiply(&x, &y_plus_z).unwrap();
+        let x_times_yz = ristretto255::scalar_mul(&x, &y_plus_z).unwrap();
 
-        let xy_prod = ristretto255::scalar_multiply(&x, &y).unwrap();
-        let xz_prod = ristretto255::scalar_multiply(&x, &z).unwrap();
+        let xy_prod = ristretto255::scalar_mul(&x, &y).unwrap();
+        let xz_prod = ristretto255::scalar_mul(&x, &z).unwrap();
         let xy_plus_xz = ristretto255::scalar_add(&xy_prod, &xz_prod).unwrap();
 
         assert_eq!(x_times_yz, xy_plus_xz);
@@ -2525,8 +2404,8 @@ mod tests {
         let x_plus_negx = ristretto255::scalar_add(&x, &neg_x).unwrap();
 
         // Zero scalar should multiply to zero
-        let zero_times_y = ristretto255::scalar_multiply(&x_plus_negx, &y).unwrap();
-        let y_times_zero = ristretto255::scalar_multiply(&y, &x_plus_negx).unwrap();
+        let zero_times_y = ristretto255::scalar_mul(&x_plus_negx, &y).unwrap();
+        let y_times_zero = ristretto255::scalar_mul(&y, &x_plus_negx).unwrap();
         assert_eq!(zero_times_y, y_times_zero);
     }
 
@@ -2540,7 +2419,7 @@ mod tests {
         let inverse = ristretto255::scalar_invert(&scalar).unwrap();
 
         // Verify scalar * inverse = 1
-        let product = ristretto255::scalar_multiply(&scalar, &inverse).unwrap();
+        let product = ristretto255::scalar_mul(&scalar, &inverse).unwrap();
 
         // The product should be 1 (identity element)
         // In little-endian representation, 1 is [1, 0, 0, ...]

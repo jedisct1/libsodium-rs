@@ -523,20 +523,6 @@ impl KeyPair {
         })
     }
 
-    /// Precompute a shared key with another party's public key
-    ///
-    /// This function performs the key exchange operation and returns a shared key
-    /// that can be used for multiple encryption/decryption operations, improving performance.
-    ///
-    /// # Arguments
-    /// * `peer_public_key` - The other party's public key
-    ///
-    /// # Returns
-    /// * `Result<PrecomputedKey>` - The precomputed shared key or an error
-    pub fn precompute_key(&self, peer_public_key: impl AsRef<PublicKey>) -> Result<PrecomputedKey> {
-        beforenm(peer_public_key.as_ref(), &self.secret_key)
-    }
-
     /// Encrypt a message for another party using this key pair
     ///
     /// # Arguments
@@ -571,20 +557,6 @@ impl KeyPair {
         sender_public_key: impl AsRef<PublicKey>,
     ) -> Result<Vec<u8>> {
         decrypt(ciphertext, nonce, sender_public_key, &self.secret_key)
-    }
-
-    /// Create a precomputed key directly from this key pair and another party's public key
-    ///
-    /// # Arguments
-    /// * `peer_public_key` - The other party's public key
-    ///
-    /// # Returns
-    /// * `Result<PrecomputedKey>` - The precomputed shared key or an error
-    pub fn create_precomputed_key(
-        &self,
-        peer_public_key: impl AsRef<PublicKey>,
-    ) -> Result<PrecomputedKey> {
-        beforenm(peer_public_key.as_ref(), &self.secret_key)
     }
 }
 
