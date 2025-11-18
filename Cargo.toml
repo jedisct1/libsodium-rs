@@ -20,9 +20,9 @@ include = [
 rust-version = "1.60.0"
 
 [dependencies]
-libsodium-sys-stable = { version = "1.22.4" }
+libsodium-sys-stable = "1.22.5"
 thiserror = "1.0"
-ctor = "0.5"
+ctor = "0.6"
 libc = "0.2"
 ct-codecs = "1.1.6"
 zeroize = { version = "1.8", features = ["zeroize_derive"] }
