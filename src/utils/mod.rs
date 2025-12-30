@@ -360,7 +360,8 @@ pub fn is_zero(n: &[u8]) -> bool {
 ///
 /// This function compares two byte arrays in lexicographical order. It returns -1 if
 /// the first array is less than the second, 1 if the first array is greater than the
-/// second, and 0 if the arrays are equal.
+/// second, and 0 if the arrays are equal. If the shared prefix is equal, the shorter
+/// slice is considered smaller.
 ///
 /// ## Security Considerations
 ///
@@ -391,7 +392,19 @@ pub fn is_zero(n: &[u8]) -> bool {
 /// # Returns
 /// * `i32` - -1 if a < b, 1 if a > b, 0 if a == b
 pub fn compare(a: &[u8], b: &[u8]) -> i32 {
-    unsafe { libsodium_sys::sodium_compare(a.as_ptr(), b.as_ptr(), a.len().min(b.len())) }
+    let min_len = a.len().min(b.len());
+    if min_len > 0 {
+        let cmp = unsafe { libsodium_sys::sodium_compare(a.as_ptr(), b.as_ptr(), min_len) };
+        if cmp != 0 {
+            return cmp;
+        }
+    }
+
+    match a.len().cmp(&b.len()) {
+        std::cmp::Ordering::Less => -1,
+        std::cmp::Ordering::Equal => 0,
+        std::cmp::Ordering::Greater => 1,
+    }
 }
 
 /// Convert binary data to a hexadecimal string
@@ -425,8 +438,8 @@ pub fn bin2hex(bin: &[u8]) -> String {
     // Remove the null terminator
     hex.pop();
 
-    // Convert to a String
-    String::from_utf8(hex).unwrap_or_else(|_| String::new())
+    // sodium_bin2hex always yields valid UTF-8
+    String::from_utf8(hex).expect("sodium_bin2hex returned invalid UTF-8")
 }
 
 /// Calculate the length of a hexadecimal string needed to encode binary data
@@ -593,8 +606,8 @@ pub fn bin2base64(bin: &[u8], variant: i32) -> String {
     let null_pos = b64.iter().position(|&x| x == 0).unwrap_or(b64.len());
     b64.truncate(null_pos);
 
-    // Convert to a String
-    String::from_utf8(b64).unwrap_or_else(|_| String::new())
+    // sodium_bin2base64 always yields valid UTF-8
+    String::from_utf8(b64).expect("sodium_bin2base64 returned invalid UTF-8")
 }
 
 /// Convert a Base64 string to binary data

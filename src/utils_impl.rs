@@ -281,7 +281,7 @@ pub fn increment_be(n: &mut [u8]) {
 
 /// Add two numbers stored as big-endian bytes
 ///
-/// This function adds two numbers stored as big-endian bytess. The result
+/// This function adds two numbers stored as big-endian bytes. The result
 /// is stored in the first array (`a`).
 ///
 /// ## Example
@@ -312,7 +312,7 @@ pub fn add_be(a: &mut [u8], b: &[u8]) {
 /// Subtract one number from another, both stored as big-endian bytes
 ///
 /// This function subtracts the second number (`b`) from the first number (`a`),
-/// both stored as big-endian bytess. The result is stored in the first array (`a`).
+/// both stored as big-endian bytes. The result is stored in the first array (`a`).
 ///
 /// ## Example
 ///
@@ -367,11 +367,12 @@ pub fn is_zero(n: &[u8]) -> bool {
     unsafe { libsodium_sys::sodium_is_zero(n.as_ptr(), n.len()) == 1 }
 }
 
-/// Compare two bytess in lexicographical order
+/// Compare two byte slices in lexicographical order
 ///
-/// This function compares two bytess in lexicographical order. It returns -1 if
+/// This function compares two byte slices in lexicographical order. It returns -1 if
 /// the first array is less than the second, 1 if the first array is greater than the
-/// second, and 0 if they are equal.
+/// second, and 0 if they are equal. If the shared prefix is equal, the shorter
+/// slice is considered smaller.
 ///
 /// ## Example
 ///
@@ -395,10 +396,19 @@ pub fn is_zero(n: &[u8]) -> bool {
 /// # Returns
 /// * `i32` - -1 if a < b, 1 if a > b, 0 if a == b
 pub fn compare(a: &[u8], b: &[u8]) -> i32 {
-    if a.len() != b.len() {
-        panic!("Arrays must have the same length");
+    let min_len = a.len().min(b.len());
+    if min_len > 0 {
+        let cmp = unsafe { libsodium_sys::sodium_compare(a.as_ptr(), b.as_ptr(), min_len) };
+        if cmp != 0 {
+            return cmp;
+        }
     }
-    unsafe { libsodium_sys::sodium_compare(a.as_ptr(), b.as_ptr(), a.len()) }
+
+    match a.len().cmp(&b.len()) {
+        std::cmp::Ordering::Less => -1,
+        std::cmp::Ordering::Equal => 0,
+        std::cmp::Ordering::Greater => 1,
+    }
 }
 
 /// Convert bytes to a hexadecimal string
@@ -573,7 +583,6 @@ pub fn base642bin(b64: &str, variant: i32) -> Result<Vec<u8>> {
     Ok(bin)
 }
 
-/// Convert a hexadecimal string to bytes
 /// Convert a hexadecimal string to bytes
 ///
 /// This function converts a hexadecimal string to its binary representation.
