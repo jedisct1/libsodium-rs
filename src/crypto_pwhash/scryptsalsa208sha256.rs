@@ -2,20 +2,36 @@ use crate::{Result, SodiumError};
 use libc;
 
 pub const BYTES_MIN: usize = libsodium_sys::crypto_pwhash_scryptsalsa208sha256_BYTES_MIN as usize;
-// Using a hardcoded value since we can't call functions in const contexts
-pub const BYTES_MAX: usize = 0x1fffffffe0; // Value from libsodium
+pub const BYTES_MAX: usize = if usize::BITS >= 37 {
+    0x001f_ffff_ffe0
+} else {
+    usize::MAX
+};
 pub const PASSWD_MIN: usize = libsodium_sys::crypto_pwhash_scryptsalsa208sha256_PASSWD_MIN as usize;
-// Using a hardcoded value since we can't call functions in const contexts
-pub const PASSWD_MAX: usize = 0x1fffffffe0; // Value from libsodium
+pub const PASSWD_MAX: usize = usize::MAX;
 pub const SALTBYTES: usize = libsodium_sys::crypto_pwhash_scryptsalsa208sha256_SALTBYTES as usize;
+
+#[inline]
+fn validate_password_len(password_len: usize) -> Result<()> {
+    let passwd_max = unsafe { libsodium_sys::crypto_pwhash_scryptsalsa208sha256_passwd_max() };
+    if password_len > passwd_max {
+        return Err(SodiumError::InvalidInput(format!(
+            "password length must be between {PASSWD_MIN} and {PASSWD_MAX} bytes"
+        )));
+    }
+    Ok(())
+}
 pub const STRBYTES: usize = libsodium_sys::crypto_pwhash_scryptsalsa208sha256_STRBYTES as usize;
 
 pub const OPSLIMIT_MIN: u64 = libsodium_sys::crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_MIN as u64;
 pub const OPSLIMIT_MAX: u64 = libsodium_sys::crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_MAX as u64;
 pub const MEMLIMIT_MIN: usize =
     libsodium_sys::crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_MIN as usize;
-// Using a hardcoded value since we can't call functions in const contexts
-pub const MEMLIMIT_MAX: usize = 68_719_476_736; // Value from libsodium
+pub const MEMLIMIT_MAX: usize = if usize::BITS >= 37 {
+    68_719_476_736
+} else {
+    usize::MAX
+};
 
 pub const OPSLIMIT_INTERACTIVE: u64 =
     libsodium_sys::crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_INTERACTIVE as u64;
@@ -40,11 +56,7 @@ pub fn pwhash(
         )));
     }
 
-    if password.len() > PASSWD_MAX {
-        return Err(SodiumError::InvalidInput(format!(
-            "password length must be between {PASSWD_MIN} and {PASSWD_MAX} bytes"
-        )));
-    }
+    validate_password_len(password.len())?;
 
     if salt.len() != SALTBYTES {
         return Err(SodiumError::InvalidInput(format!(
@@ -88,11 +100,7 @@ pub fn pwhash(
 
 /// Creates a password hash string for storage using scrypt
 pub fn pwhash_str(password: &[u8], opslimit: u64, memlimit: usize) -> Result<String> {
-    if password.len() > PASSWD_MAX {
-        return Err(SodiumError::InvalidInput(format!(
-            "password length must be between {PASSWD_MIN} and {PASSWD_MAX} bytes"
-        )));
-    }
+    validate_password_len(password.len())?;
 
     if !(OPSLIMIT_MIN..=OPSLIMIT_MAX).contains(&opslimit) {
         return Err(SodiumError::InvalidInput(format!(
@@ -133,11 +141,7 @@ pub fn pwhash_str(password: &[u8], opslimit: u64, memlimit: usize) -> Result<Str
 
 /// Verifies a password against a hash string using scrypt
 pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> Result<bool> {
-    if password.len() > PASSWD_MAX {
-        return Err(SodiumError::InvalidInput(format!(
-            "password length must be between {PASSWD_MIN} and {PASSWD_MAX} bytes"
-        )));
-    }
+    validate_password_len(password.len())?;
 
     let result = unsafe {
         libsodium_sys::crypto_pwhash_scryptsalsa208sha256_str_verify(
@@ -178,11 +182,7 @@ pub fn pwhash_ll(
     p: u32,
     out_len: usize,
 ) -> Result<Vec<u8>> {
-    if password.len() > PASSWD_MAX {
-        return Err(SodiumError::InvalidInput(format!(
-            "password length must be between {PASSWD_MIN} and {PASSWD_MAX} bytes"
-        )));
-    }
+    validate_password_len(password.len())?;
 
     if !(BYTES_MIN..=BYTES_MAX).contains(&out_len) {
         return Err(SodiumError::InvalidInput(format!(
@@ -218,6 +218,19 @@ pub fn pwhash_ll(
 mod tests {
     use super::*;
     use crate::random;
+
+    #[test]
+    fn test_max_constants_match_libsodium() {
+        assert_eq!(BYTES_MAX, unsafe {
+            libsodium_sys::crypto_pwhash_scryptsalsa208sha256_bytes_max()
+        });
+        assert_eq!(PASSWD_MAX, unsafe {
+            libsodium_sys::crypto_pwhash_scryptsalsa208sha256_passwd_max()
+        });
+        assert_eq!(MEMLIMIT_MAX, unsafe {
+            libsodium_sys::crypto_pwhash_scryptsalsa208sha256_memlimit_max()
+        });
+    }
 
     #[test]
     fn test_pwhash() {
