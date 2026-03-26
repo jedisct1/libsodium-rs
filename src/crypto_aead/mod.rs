@@ -25,7 +25,13 @@
 //!   * Excellent software performance on all platforms
 //!   * Resistant to timing attacks
 //!
-//! - **`chacha20poly1305`**: ChaCha20-Poly1305-IETF
+//! - **`chacha20poly1305`**: libsodium's original ChaCha20-Poly1305 variant
+//!   * Uses a 256-bit key and 64-bit nonce
+//!   * Matches `crypto_aead_chacha20poly1305`
+//!   * Good software performance
+//!   * Requires strict nonce management (nonce reuse is catastrophic)
+//!
+//! - **`chacha20poly1305_ietf`**: ChaCha20-Poly1305-IETF
 //!   * Uses a 256-bit key and 96-bit nonce
 //!   * Standardized in RFC 8439
 //!   * Good software performance
@@ -56,7 +62,8 @@
 //! | Algorithm | Key Size | Nonce Size | Security Level | Performance | Hardware Acceleration | Standardization | Nonce Safety |
 //! |-----------|----------|------------|----------------|------------|----------------------|-----------------|-------------|
 //! | XChaCha20-Poly1305 | 256-bit | 192-bit | High | Good | No (SW optimized) | Widely used | Safe for random generation |
-//! | ChaCha20-Poly1305 | 256-bit | 96-bit | High | Good | No (SW optimized) | RFC 8439 | Requires careful management |
+//! | ChaCha20-Poly1305 (original) | 256-bit | 64-bit | High | Good | No (SW optimized) | libsodium-specific | Requires strict management |
+//! | ChaCha20-Poly1305-IETF | 256-bit | 96-bit | High | Good | No (SW optimized) | RFC 8439 | Requires careful management |
 //! | AES-256-GCM | 256-bit | 96-bit | High | Excellent* | Yes (AES-NI) | NIST SP 800-38D | Requires careful management |
 //! | AEGIS-128L | 128-bit | 128-bit | Medium-High | Excellent* | Yes (AES-NI) | CAESAR finalist | Reasonably safe for random |
 //! | AEGIS-256 | 256-bit | 256-bit | Very High | Very Good* | Yes (AES-NI) | CAESAR finalist | Safe for random generation |
@@ -81,13 +88,13 @@
 //!   * Better future-proofing against quantum computing threats
 //!   * Consider post-quantum security margins for long-term data protection
 //!
-//! - **For standards compliance**: Use `chacha20poly1305` (RFC 8439) or `aes256gcm` (NIST)
+//! - **For standards compliance**: Use `chacha20poly1305_ietf` (RFC 8439) or `aes256gcm` (NIST)
 //!   * Essential for interoperability with other systems
 //!   * Well-analyzed and widely deployed in protocols like TLS
 //!   * Requires careful nonce management (counter-based approach recommended)
 //!
 //! - **For embedded or resource-constrained environments**:
-//!   * Without AES hardware: Use `chacha20poly1305` or `xchacha20poly1305`
+//!   * Without AES hardware: Use `chacha20poly1305`, `chacha20poly1305_ietf`, or `xchacha20poly1305`
 //!   * With AES hardware: Consider `aes256gcm`
 //!   * Optimize for memory usage and power consumption
 //!
@@ -96,20 +103,20 @@
 //! Performance varies significantly based on hardware support:
 //!
 //! - **With AES-NI and CLMUL instructions** (most modern x86/x64 CPUs):
-//!   * `aegis128l` > `aes256gcm` > `aegis256` > `chacha20poly1305` ≈ `xchacha20poly1305`
+//!   * `aegis128l` > `aes256gcm` > `aegis256` > `chacha20poly1305` ≈ `chacha20poly1305_ietf` ≈ `xchacha20poly1305`
 //!
 //! - **Without hardware acceleration** (older CPUs, many ARM devices):
-//!   * `chacha20poly1305` ≈ `xchacha20poly1305` > `aegis256` > `aegis128l` > `aes256gcm`
+//!   * `chacha20poly1305` ≈ `chacha20poly1305_ietf` ≈ `xchacha20poly1305` > `aegis256` > `aegis128l` > `aes256gcm`
 //!
 //! ### Security Considerations
 //!
 //! - **Nonce reuse resistance**: All algorithms are catastrophically broken if a nonce is reused with the same key
 //!   * `xchacha20poly1305` and `aegis256` have large enough nonce spaces that random generation is safe
-//!   * `chacha20poly1305` and `aes256gcm` require careful nonce management (counter-based approach)
+//!   * `chacha20poly1305`, `chacha20poly1305_ietf`, and `aes256gcm` require careful nonce management (counter-based approach)
 //!   * `aegis128l` has a reasonable nonce size but still requires care in high-volume applications
 //!
 //! - **Quantum resistance**: All these algorithms provide similar security against current threats
-//!   * For long-term security, algorithms with 256-bit keys (`xchacha20poly1305`, `chacha20poly1305`, `aes256gcm`, `aegis256`)
+//!   * For long-term security, algorithms with 256-bit keys (`xchacha20poly1305`, `chacha20poly1305`, `chacha20poly1305_ietf`, `aes256gcm`, `aegis256`)
 //!     provide better protection against future quantum computing threats
 //!
 //! - **Implementation security**: Consider side-channel attack resistance
@@ -128,8 +135,8 @@
 //! ## Security Considerations
 //!
 //! - **Never reuse a nonce with the same key**: This is the most critical rule. Nonce reuse
-//!   can completely compromise security. For algorithms with smaller nonces (like `chacha20poly1305`
-//!   and `aes256gcm`), use a counter or other deterministic method to ensure uniqueness.
+//!   can completely compromise security. For algorithms with smaller nonces (like `chacha20poly1305`,
+//!   `chacha20poly1305_ietf`, and `aes256gcm`), use a counter or other deterministic method to ensure uniqueness.
 //!
 //! - **Nonce handling strategies**:
 //!
@@ -137,7 +144,7 @@
 //!     - Maintain a strictly increasing counter for each encryption with the same key
 //!     - Store the counter persistently to avoid reuse after restarts
 //!     - Can be as simple as a 64-bit or 128-bit integer that increments for each message
-//!     - For `chacha20poly1305` and `aes256gcm`, this is the recommended approach
+//!     - For `chacha20poly1305`, `chacha20poly1305_ietf`, and `aes256gcm`, this is the recommended approach
 //!     - Example: Store the counter in a database or file, increment it for each encryption
 //!
 //!   * **Random**: Safe only with large nonce spaces
@@ -174,21 +181,21 @@
 //!
 //! ## Practical Nonce Management Examples
 //!
-//! ### Example 1: Counter-Based Nonce for ChaCha20-Poly1305 (96-bit nonce)
+//! ### Example 1: Counter-Based Nonce for ChaCha20-Poly1305-IETF (96-bit nonce)
 //!
 //! ```rust
 //! use std::fs::{self, File};
 //! use std::io::{Read, Write};
 //! use std::path::Path;
 //! use libsodium_rs as sodium;
-//! use sodium::crypto_aead::chacha20poly1305;
+//! use sodium::crypto_aead::chacha20poly1305_ietf;
 //! use sodium::ensure_init;
 //!
 //! // File to store the counter
 //! const COUNTER_FILE: &str = "chacha20poly1305_counter.bin";
 //!
 //! // Initialize a counter or load it from persistent storage
-//! fn get_next_nonce(key_id: &str) -> chacha20poly1305::Nonce {
+//! fn get_next_nonce(key_id: &str) -> chacha20poly1305_ietf::Nonce {
 //!     ensure_init().expect("Failed to initialize libsodium");
 //!     
 //!     let counter_path = format!("{}.{}", key_id, COUNTER_FILE);
@@ -213,7 +220,7 @@
 //!     file.write_all(&counter_bytes).expect("Failed to write counter");
 //!     
 //!     // Create a nonce from the counter
-//!     chacha20poly1305::Nonce::try_from_slice(&counter_bytes).expect("Invalid nonce")
+//!     chacha20poly1305_ietf::Nonce::try_from_slice(&counter_bytes).expect("Invalid nonce")
 //! }
 //!
 //! // Helper functions for 96-bit integer conversion
@@ -375,18 +382,19 @@
 //! ```
 
 // Re-export submodules
-
-// Re-export submodules
 pub mod aegis128l;
 pub mod aegis256;
 pub mod aes256gcm;
 pub mod chacha20poly1305;
+pub mod chacha20poly1305_ietf;
+pub mod chacha20poly1305_ietf_state;
 pub mod chacha20poly1305_state;
 pub mod xchacha20poly1305;
 pub mod xchacha20poly1305_state;
 
 // Re-export state modules
 pub use aes256gcm::State as Aes256gcmState;
+pub use chacha20poly1305_ietf_state::State as Chacha20poly1305IetfState;
 pub use chacha20poly1305_state::State as Chacha20poly1305State;
 pub use xchacha20poly1305_state::State as Xchacha20poly1305State;
 
@@ -395,6 +403,7 @@ mod tests {
     use super::*;
 
     // Import state modules for testing
+    use crate::crypto_aead::chacha20poly1305_ietf_state;
     use crate::crypto_aead::chacha20poly1305_state;
     use crate::crypto_aead::xchacha20poly1305_state;
 
@@ -553,7 +562,79 @@ mod tests {
     }
 
     #[test]
-    fn test_chacha20poly1305() {
+    fn test_chacha20poly1305_ietf() {
+        let key = chacha20poly1305_ietf::Key::generate();
+        let nonce =
+            chacha20poly1305_ietf::Nonce::from_bytes([0u8; chacha20poly1305_ietf::NPUBBYTES]);
+        let message = b"Hello, World!";
+        let ad = b"Additional data";
+
+        let ciphertext = chacha20poly1305_ietf::encrypt(message, Some(ad), &nonce, &key).unwrap();
+        let decrypted = chacha20poly1305_ietf::decrypt(&ciphertext, Some(ad), &nonce, &key).unwrap();
+        assert_eq!(message, &decrypted[..]);
+
+        let wrong_ad = b"Wrong data";
+        assert!(chacha20poly1305_ietf::decrypt(&ciphertext, Some(wrong_ad), &nonce, &key).is_err());
+
+        let (detached_ciphertext, tag) =
+            chacha20poly1305_ietf::encrypt_detached(message, Some(ad), &nonce, &key).unwrap();
+        let detached_decrypted = chacha20poly1305_ietf::decrypt_detached(
+            &detached_ciphertext,
+            &tag,
+            Some(ad),
+            &nonce,
+            &key,
+        )
+        .unwrap();
+        assert_eq!(message, &detached_decrypted[..]);
+
+        assert!(chacha20poly1305_ietf::decrypt_detached(
+            &detached_ciphertext,
+            &tag,
+            Some(wrong_ad),
+            &nonce,
+            &key
+        )
+        .is_err());
+
+        let wrong_tag = vec![0u8; chacha20poly1305_ietf::ABYTES];
+        assert!(chacha20poly1305_ietf::decrypt_detached(
+            &detached_ciphertext,
+            &wrong_tag,
+            Some(ad),
+            &nonce,
+            &key
+        )
+        .is_err());
+
+        let state = chacha20poly1305_ietf_state::State::from_key(&key).unwrap();
+        let precomp_ciphertext =
+            chacha20poly1305_ietf_state::encrypt_afternm(message, Some(ad), &nonce, &state).unwrap();
+        let precomp_decrypted = chacha20poly1305_ietf_state::decrypt_afternm(
+            &precomp_ciphertext,
+            Some(ad),
+            &nonce,
+            &state,
+        )
+        .unwrap();
+        assert_eq!(message, &precomp_decrypted[..]);
+
+        let (precomp_detached_ciphertext, precomp_tag) =
+            chacha20poly1305_ietf_state::encrypt_detached_afternm(message, Some(ad), &nonce, &state)
+                .unwrap();
+        let precomp_detached_decrypted = chacha20poly1305_ietf_state::decrypt_detached_afternm(
+            &precomp_detached_ciphertext,
+            &precomp_tag,
+            Some(ad),
+            &nonce,
+            &state,
+        )
+        .unwrap();
+        assert_eq!(message, &precomp_detached_decrypted[..]);
+    }
+
+    #[test]
+    fn test_chacha20poly1305_original() {
         let key = chacha20poly1305::Key::generate();
         let nonce = chacha20poly1305::Nonce::from_bytes([0u8; chacha20poly1305::NPUBBYTES]);
         let message = b"Hello, World!";

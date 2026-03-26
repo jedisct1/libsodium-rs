@@ -1,11 +1,12 @@
-//! # ChaCha20-Poly1305 Authenticated Encryption with Associated Data
+//! # ChaCha20-Poly1305-IETF Authenticated Encryption with Associated Data
 //!
-//! This module provides authenticated encryption and decryption using libsodium's original
-//! ChaCha20-Poly1305 AEAD construction. This variant combines the ChaCha20 stream
-//! cipher with the Poly1305 message authentication code and uses a 64-bit nonce.
+//! This module provides authenticated encryption and decryption using libsodium's
+//! `crypto_aead_chacha20poly1305_ietf` API, the RFC 8439 / IETF ChaCha20-Poly1305
+//! AEAD construction. It combines the ChaCha20 stream cipher with the Poly1305
+//! message authentication code and uses a 96-bit nonce.
 //!
-//! For the RFC 8439 / IETF variant with a 96-bit nonce, use
-//! [`crate::crypto_aead::chacha20poly1305_ietf`].
+//! For libsodium's original 64-bit-nonce variant, use
+//! [`crate::crypto_aead::chacha20poly1305`].
 //!
 //! ## Algorithm Details
 //!
@@ -13,7 +14,7 @@
 //!
 //! 1. **ChaCha20**: A stream cipher designed by Daniel J. Bernstein
 //!    * Uses a 256-bit key for encryption
-//!    * Uses a 64-bit nonce (8 bytes) in libsodium's original variant
+//!    * Uses a 96-bit nonce (12 bytes) in the IETF variant
 //!    * Based on the ARX (Add-Rotate-XOR) design principle
 //!    * Operates on 512-bit blocks using a 20-round function
 //!
@@ -24,7 +25,7 @@
 //!
 //! ## Features and Advantages
 //!
-//! - **Compatibility**: Matches libsodium's original ChaCha20-Poly1305 API
+//! - **Standardization**: Formally standardized in RFC 8439, providing interoperability
 //! - **High performance**: Optimized for software implementations without requiring specialized hardware
 //! - **Cross-platform efficiency**: Works efficiently on all platforms, from embedded devices to servers
 //! - **Timing attack resistance**: The algorithm is designed to be constant-time, protecting against timing side-channels
@@ -40,22 +41,23 @@
 //!
 //! ## Nonce Considerations
 //!
-//! This variant uses a 64-bit (8-byte) nonce, which is too small for random generation and
-//! requires strict nonce management. Prefer a counter or another deterministic scheme, or use
-//! `chacha20poly1305_ietf` / `xchacha20poly1305` if you need wider nonce spaces.
+//! ChaCha20-Poly1305-IETF uses a 96-bit (12-byte) nonce, which is **NOT** large enough for safe
+//! random generation. With a 96-bit nonce, the probability of a collision becomes significant
+//! after encrypting approximately 2^32 messages with the same key.
 //!
 //! For safe nonce handling, use one of these approaches:
 //!
-//! 1. **Counter-based nonces**: Maintain a strictly increasing 64-bit counter for each encryption
-//!    with the same key. This is the recommended approach for this variant.
+//! 1. **Counter-based nonces**: Maintain a strictly increasing counter for each encryption
+//!    with the same key. This is the recommended approach for ChaCha20-Poly1305.
 //!
-//! 2. **Use a wider-nonce variant instead**: If you need RFC 8439 interoperability, use
-//!    `chacha20poly1305_ietf`. If you need random nonces, prefer `xchacha20poly1305`.
+//! 2. **Use XChaCha20-Poly1305 instead**: If you need to encrypt many messages with the same key
+//!    and cannot reliably maintain a counter, use XChaCha20-Poly1305 which has a 192-bit nonce
+//!    that is safe for random generation.
 //!
 //! ## Security Considerations and Best Practices
 //!
 //! - **Nonce management**: Never reuse a nonce with the same key. Use a counter-based approach
-//!   for generating nonces with this original ChaCha20-Poly1305 variant.
+//!   for generating nonces with ChaCha20-Poly1305.
 //!
 //! - **Key management**: Protect your secret keys. Consider using key derivation functions (KDFs)
 //!   to derive encryption keys from passwords or master keys.
@@ -74,26 +76,26 @@
 //!
 //! ## When to Use ChaCha20-Poly1305
 //!
-//! - When you need compatibility with libsodium's original ChaCha20-Poly1305 API
-//! - When both sides already use the 64-bit-nonce construction
-//! - When you can reliably maintain a 64-bit counter for nonce generation
-//! - When RFC 8439 interoperability is not required
+//! - When you need a standardized AEAD algorithm (RFC 8439)
+//! - When you need interoperability with other systems
+//! - When you can reliably maintain a counter for nonce generation
+//! - When you need an algorithm that works efficiently on all platforms without hardware acceleration
 //!
 //! ## Example
 //!
 //! ```rust
 //! use libsodium_rs as sodium;
-//! use sodium::crypto_aead::chacha20poly1305;
+//! use sodium::crypto_aead::chacha20poly1305_ietf;
 //! use sodium::ensure_init;
 //!
 //! // Initialize libsodium
 //! ensure_init().expect("Failed to initialize libsodium");
 //!
 //! // Generate a random key
-//! let key = chacha20poly1305::Key::generate();
+//! let key = chacha20poly1305_ietf::Key::generate();
 //!
 //! // Create a nonce
-//! let nonce = chacha20poly1305::Nonce::generate();
+//! let nonce = chacha20poly1305_ietf::Nonce::generate();
 //!
 //! // Message to encrypt
 //! let message = b"Hello, world!";
@@ -102,7 +104,7 @@
 //! let additional_data = b"Important metadata";
 //!
 //! // Encrypt the message
-//! let ciphertext = chacha20poly1305::encrypt(
+//! let ciphertext = chacha20poly1305_ietf::encrypt(
 //!     message,
 //!     Some(additional_data),
 //!     &nonce,
@@ -110,7 +112,7 @@
 //! ).unwrap();
 //!
 //! // Decrypt the message
-//! let decrypted = chacha20poly1305::decrypt(
+//! let decrypted = chacha20poly1305_ietf::decrypt(
 //!     &ciphertext,
 //!     Some(additional_data),
 //!     &nonce,
@@ -127,25 +129,25 @@ use std::convert::{TryFrom, TryInto};
 ///
 /// The secret key is used for both encryption and decryption.
 /// It must be kept secret and should be generated using a secure random number generator.
-pub const KEYBYTES: usize = libsodium_sys::crypto_aead_chacha20poly1305_KEYBYTES as usize;
-/// Number of bytes in a nonce (8)
+pub const KEYBYTES: usize = libsodium_sys::crypto_aead_chacha20poly1305_ietf_KEYBYTES as usize;
+/// Number of bytes in a nonce (12)
 ///
 /// The nonce must be unique for each encryption operation with the same key.
 /// It can be public, but must never be reused with the same key.
-pub const NPUBBYTES: usize = libsodium_sys::crypto_aead_chacha20poly1305_NPUBBYTES as usize;
+pub const NPUBBYTES: usize = libsodium_sys::crypto_aead_chacha20poly1305_ietf_NPUBBYTES as usize;
 
-/// A nonce (number used once) for ChaCha20-Poly1305 operations
+/// A nonce (number used once) for ChaCha20-Poly1305-IETF operations
 ///
-/// This struct represents a nonce for use with the ChaCha20-Poly1305 encryption algorithm.
+/// This struct represents a nonce for use with the ChaCha20-Poly1305-IETF encryption algorithm.
 /// A nonce must be unique for each message encrypted with the same key to maintain security.
-/// ChaCha20-Poly1305 uses a 64-bit nonce, which is relatively small. For applications that
-/// need to encrypt many messages with the same key, consider using XChaCha20-Poly1305 instead,
-/// which has a larger nonce size (192 bits).
+/// ChaCha20-Poly1305-IETF uses a 96-bit nonce. This is the RFC 8439 variant used for
+/// interoperability with other implementations, but it still requires strict nonce
+/// management and is not suitable for random nonces at high volume.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Nonce([u8; NPUBBYTES]);
 
 impl Nonce {
-    /// Generate a random nonce for use with ChaCha20-Poly1305 functions
+    /// Generate a nonce for use with ChaCha20-Poly1305-IETF functions
     ///
     /// This method generates a random nonce of the appropriate size (NPUBBYTES)
     /// for use with the encryption and decryption functions in this module.
@@ -158,15 +160,15 @@ impl Nonce {
     ///
     /// ```rust
     /// use libsodium_rs as sodium;
-    /// use sodium::crypto_aead::chacha20poly1305;
+    /// use sodium::crypto_aead::chacha20poly1305_ietf;
     /// use sodium::ensure_init;
     ///
     /// // Initialize libsodium
     /// ensure_init().expect("Failed to initialize libsodium");
     ///
     /// // Generate a random nonce
-    /// let nonce = chacha20poly1305::Nonce::generate();
-    /// assert_eq!(nonce.as_bytes().len(), chacha20poly1305::NPUBBYTES);
+    /// let nonce = chacha20poly1305_ietf::Nonce::generate();
+    /// assert_eq!(nonce.as_bytes().len(), chacha20poly1305_ietf::NPUBBYTES);
     /// ```
     pub fn generate() -> Self {
         let mut bytes = [0u8; NPUBBYTES];
@@ -252,19 +254,19 @@ impl From<Nonce> for [u8; NPUBBYTES] {
 /// Number of bytes in an authentication tag (16)
 ///
 /// This is the size of the authentication tag that is added to the ciphertext.
-pub const ABYTES: usize = libsodium_sys::crypto_aead_chacha20poly1305_ABYTES as usize;
+pub const ABYTES: usize = libsodium_sys::crypto_aead_chacha20poly1305_ietf_ABYTES as usize;
 
 /// Maximum number of bytes in a message
 ///
 /// This is the maximum number of bytes that can be encrypted in a single message.
 pub fn messagebytes_max() -> usize {
-    unsafe { libsodium_sys::crypto_aead_chacha20poly1305_messagebytes_max() }
+    unsafe { libsodium_sys::crypto_aead_chacha20poly1305_ietf_messagebytes_max() }
 }
 
-/// A secret key for ChaCha20-Poly1305 encryption and decryption
+/// A secret key for ChaCha20-Poly1305-IETF encryption and decryption
 ///
 /// This struct represents a 256-bit (32-byte) secret key used for
-/// ChaCha20-Poly1305 authenticated encryption and decryption.
+/// ChaCha20-Poly1305-IETF authenticated encryption and decryption.
 /// The key should be generated using a secure random number generator
 /// and kept secret.
 ///
@@ -272,18 +274,18 @@ pub fn messagebytes_max() -> usize {
 ///
 /// ```rust
 /// use libsodium_rs as sodium;
-/// use sodium::crypto_aead::chacha20poly1305;
+/// use sodium::crypto_aead::chacha20poly1305_ietf;
 /// use sodium::ensure_init;
 ///
 /// // Initialize libsodium
 /// ensure_init().expect("Failed to initialize libsodium");
 ///
 /// // Generate a random key
-/// let key = chacha20poly1305::Key::generate();
+/// let key = chacha20poly1305_ietf::Key::generate();
 ///
 /// // Create a key from existing bytes
-/// let key_bytes = [0x42; chacha20poly1305::KEYBYTES];
-/// let key_from_bytes = chacha20poly1305::Key::from_bytes(&key_bytes).unwrap();
+/// let key_bytes = [0x42; chacha20poly1305_ietf::KEYBYTES];
+/// let key_from_bytes = chacha20poly1305_ietf::Key::from_bytes(&key_bytes).unwrap();
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
 pub struct Key([u8; KEYBYTES]);
@@ -347,9 +349,9 @@ impl From<Key> for [u8; KEYBYTES] {
     }
 }
 
-/// Encrypt a message using ChaCha20-Poly1305
+/// Encrypt a message using ChaCha20-Poly1305-IETF
 ///
-/// This function encrypts a message using the ChaCha20-Poly1305 algorithm.
+/// This function encrypts a message using the ChaCha20-Poly1305-IETF algorithm.
 /// It provides both confidentiality and authenticity for the message, and also
 /// authenticates the additional data if provided.
 ///
@@ -365,26 +367,26 @@ impl From<Key> for [u8; KEYBYTES] {
 /// # Security Considerations
 /// * The nonce must be unique for each encryption with the same key
 /// * The nonce can be public, but must never be reused with the same key
-/// * For random nonces, use `random::bytes(NPUBBYTES)`
+/// * Prefer a counter-based nonce scheme for this 96-bit-nonce variant
 /// * The additional data is authenticated but not encrypted
-/// * ChaCha20-Poly1305 uses a 64-bit (8-byte) nonce, which is smaller than XChaCha20-Poly1305
-/// * For applications that need to encrypt many messages with the same key,
-///   consider using XChaCha20-Poly1305 instead, which has a larger nonce size
+/// * ChaCha20-Poly1305-IETF uses a 96-bit (12-byte) nonce
+/// * For applications that need random nonces or very large nonce spaces,
+///   consider using XChaCha20-Poly1305 instead
 ///
 /// # Example
 /// ```rust
 /// use libsodium_rs as sodium;
-/// use sodium::crypto_aead::chacha20poly1305;
+/// use sodium::crypto_aead::chacha20poly1305_ietf;
 /// use sodium::ensure_init;
 ///
 /// // Initialize libsodium
 /// ensure_init().expect("Failed to initialize libsodium");
 ///
 /// // Generate a random key
-/// let key = chacha20poly1305::Key::generate();
+/// let key = chacha20poly1305_ietf::Key::generate();
 ///
 /// // Generate a random nonce
-/// let nonce = chacha20poly1305::Nonce::generate();
+/// let nonce = chacha20poly1305_ietf::Nonce::generate();
 ///
 /// // Message to encrypt
 /// let message = b"Hello, world!";
@@ -393,7 +395,7 @@ impl From<Key> for [u8; KEYBYTES] {
 /// let additional_data = b"Important metadata";
 ///
 /// // Encrypt the message
-/// let ciphertext = chacha20poly1305::encrypt(
+/// let ciphertext = chacha20poly1305_ietf::encrypt(
 ///     message,
 ///     Some(additional_data),
 ///     &nonce,
@@ -416,7 +418,7 @@ pub fn encrypt(
     let mut ciphertext_len = 0u64;
 
     let result = unsafe {
-        libsodium_sys::crypto_aead_chacha20poly1305_encrypt(
+        libsodium_sys::crypto_aead_chacha20poly1305_ietf_encrypt(
             ciphertext.as_mut_ptr(),
             &mut ciphertext_len,
             message.as_ptr(),
@@ -437,9 +439,9 @@ pub fn encrypt(
     Ok(ciphertext)
 }
 
-/// Decrypt a message using ChaCha20-Poly1305
+/// Decrypt a message using ChaCha20-Poly1305-IETF
 ///
-/// This function decrypts a message that was encrypted using the ChaCha20-Poly1305
+/// This function decrypts a message that was encrypted using the ChaCha20-Poly1305-IETF
 /// algorithm. It verifies the authenticity of both the ciphertext and the additional data
 /// (if provided) before returning the decrypted message.
 ///
@@ -460,17 +462,17 @@ pub fn encrypt(
 /// # Example
 /// ```rust
 /// use libsodium_rs as sodium;
-/// use sodium::crypto_aead::chacha20poly1305;
+/// use sodium::crypto_aead::chacha20poly1305_ietf;
 /// use sodium::ensure_init;
 ///
 /// // Initialize libsodium
 /// ensure_init().expect("Failed to initialize libsodium");
 ///
 /// // Generate a random key
-/// let key = chacha20poly1305::Key::generate();
+/// let key = chacha20poly1305_ietf::Key::generate();
 ///
 /// // Generate a random nonce
-/// let nonce = chacha20poly1305::Nonce::generate();
+/// let nonce = chacha20poly1305_ietf::Nonce::generate();
 ///
 /// // Message to encrypt
 /// let message = b"Hello, world!";
@@ -479,7 +481,7 @@ pub fn encrypt(
 /// let additional_data = b"Important metadata";
 ///
 /// // Encrypt the message
-/// let ciphertext = chacha20poly1305::encrypt(
+/// let ciphertext = chacha20poly1305_ietf::encrypt(
 ///     message,
 ///     Some(additional_data),
 ///     &nonce,
@@ -487,7 +489,7 @@ pub fn encrypt(
 /// ).unwrap();
 ///
 /// // Decrypt the message
-/// let decrypted = chacha20poly1305::decrypt(
+/// let decrypted = chacha20poly1305_ietf::decrypt(
 ///     &ciphertext,
 ///     Some(additional_data),
 ///     &nonce,
@@ -518,7 +520,7 @@ pub fn decrypt(
     let mut message_len = 0u64;
 
     let result = unsafe {
-        libsodium_sys::crypto_aead_chacha20poly1305_decrypt(
+        libsodium_sys::crypto_aead_chacha20poly1305_ietf_decrypt(
             message.as_mut_ptr(),
             &mut message_len,
             std::ptr::null_mut(),
@@ -539,9 +541,9 @@ pub fn decrypt(
     Ok(message)
 }
 
-/// Encrypt a message using ChaCha20-Poly1305 with detached authentication tag
+/// Encrypt a message using ChaCha20-Poly1305-IETF with detached authentication tag
 ///
-/// This function encrypts a message using the ChaCha20-Poly1305 algorithm and returns
+/// This function encrypts a message using the ChaCha20-Poly1305-IETF algorithm and returns
 /// the ciphertext and authentication tag separately. This is useful when you want
 /// to store or transmit the ciphertext and tag separately.
 ///
@@ -557,26 +559,26 @@ pub fn decrypt(
 /// # Security Considerations
 /// * The nonce must be unique for each encryption with the same key
 /// * The nonce can be public, but must never be reused with the same key
-/// * For random nonces, use `random::bytes(NPUBBYTES)`
+/// * Prefer a counter-based nonce scheme for this 96-bit-nonce variant
 /// * The additional data is authenticated but not encrypted
-/// * ChaCha20-Poly1305 uses a 64-bit (8-byte) nonce, which is smaller than XChaCha20-Poly1305
-/// * For applications that need to encrypt many messages with the same key,
-///   consider using XChaCha20-Poly1305 instead, which has a larger nonce size
+/// * ChaCha20-Poly1305-IETF uses a 96-bit (12-byte) nonce
+/// * For applications that need random nonces or very large nonce spaces,
+///   consider using XChaCha20-Poly1305 instead
 ///
 /// # Example
 /// ```rust
 /// use libsodium_rs as sodium;
-/// use sodium::crypto_aead::chacha20poly1305;
+/// use sodium::crypto_aead::chacha20poly1305_ietf;
 /// use sodium::ensure_init;
 ///
 /// // Initialize libsodium
 /// ensure_init().expect("Failed to initialize libsodium");
 ///
 /// // Generate a random key
-/// let key = chacha20poly1305::Key::generate();
+/// let key = chacha20poly1305_ietf::Key::generate();
 ///
 /// // Generate a random nonce
-/// let nonce = chacha20poly1305::Nonce::generate();
+/// let nonce = chacha20poly1305_ietf::Nonce::generate();
 ///
 /// // Message to encrypt
 /// let message = b"Hello, world!";
@@ -585,7 +587,7 @@ pub fn decrypt(
 /// let additional_data = b"Important metadata";
 ///
 /// // Encrypt the message with detached authentication tag
-/// let (ciphertext, tag) = chacha20poly1305::encrypt_detached(
+/// let (ciphertext, tag) = chacha20poly1305_ietf::encrypt_detached(
 ///     message,
 ///     Some(additional_data),
 ///     &nonce,
@@ -609,7 +611,7 @@ pub fn encrypt_detached(
     let mut tag_len = 0u64;
 
     let result = unsafe {
-        libsodium_sys::crypto_aead_chacha20poly1305_encrypt_detached(
+        libsodium_sys::crypto_aead_chacha20poly1305_ietf_encrypt_detached(
             ciphertext.as_mut_ptr(),
             tag.as_mut_ptr(),
             &mut tag_len,
@@ -631,9 +633,9 @@ pub fn encrypt_detached(
     Ok((ciphertext, tag))
 }
 
-/// Decrypt a message using ChaCha20-Poly1305 with detached authentication tag
+/// Decrypt a message using ChaCha20-Poly1305-IETF with detached authentication tag
 ///
-/// This function decrypts a message that was encrypted using the ChaCha20-Poly1305
+/// This function decrypts a message that was encrypted using the ChaCha20-Poly1305-IETF
 /// algorithm with a detached authentication tag. It verifies the authenticity of
 /// both the ciphertext and the additional data (if provided) before returning the
 /// decrypted message.
@@ -656,17 +658,17 @@ pub fn encrypt_detached(
 /// # Example
 /// ```rust
 /// use libsodium_rs as sodium;
-/// use sodium::crypto_aead::chacha20poly1305;
+/// use sodium::crypto_aead::chacha20poly1305_ietf;
 /// use sodium::ensure_init;
 ///
 /// // Initialize libsodium
 /// ensure_init().expect("Failed to initialize libsodium");
 ///
 /// // Generate a random key
-/// let key = chacha20poly1305::Key::generate();
+/// let key = chacha20poly1305_ietf::Key::generate();
 ///
 /// // Generate a random nonce
-/// let nonce = chacha20poly1305::Nonce::generate();
+/// let nonce = chacha20poly1305_ietf::Nonce::generate();
 ///
 /// // Message to encrypt
 /// let message = b"Hello, world!";
@@ -675,7 +677,7 @@ pub fn encrypt_detached(
 /// let additional_data = b"Important metadata";
 ///
 /// // Encrypt the message with detached authentication tag
-/// let (ciphertext, tag) = chacha20poly1305::encrypt_detached(
+/// let (ciphertext, tag) = chacha20poly1305_ietf::encrypt_detached(
 ///     message,
 ///     Some(additional_data),
 ///     &nonce,
@@ -683,7 +685,7 @@ pub fn encrypt_detached(
 /// ).unwrap();
 ///
 /// // Decrypt the message with detached authentication tag
-/// let decrypted = chacha20poly1305::decrypt_detached(
+/// let decrypted = chacha20poly1305_ietf::decrypt_detached(
 ///     &ciphertext,
 ///     &tag,
 ///     Some(additional_data),
@@ -717,7 +719,7 @@ pub fn decrypt_detached(
     let mut message = vec![0u8; ciphertext.len()];
 
     let result = unsafe {
-        libsodium_sys::crypto_aead_chacha20poly1305_decrypt_detached(
+        libsodium_sys::crypto_aead_chacha20poly1305_ietf_decrypt_detached(
             message.as_mut_ptr(),
             std::ptr::null_mut(),
             ciphertext.as_ptr(),
@@ -778,7 +780,7 @@ mod tests {
 
         let key = Key::generate();
         let nonce = Nonce::generate();
-        let message = b"Hello, ChaCha20-Poly1305!";
+        let message = b"Hello, ChaCha20-Poly1305-IETF!";
         let additional_data = b"Important metadata";
 
         // Encrypt the message
@@ -796,7 +798,7 @@ mod tests {
 
         let key = Key::generate();
         let nonce = Nonce::generate();
-        let message = b"Hello, ChaCha20-Poly1305 with detached MAC!";
+        let message = b"Hello, ChaCha20-Poly1305-IETF with detached MAC!";
         let additional_data = b"Important metadata";
 
         // Encrypt the message with detached MAC
@@ -816,7 +818,7 @@ mod tests {
 
         let key = Key::generate();
         let nonce = Nonce::generate();
-        let message = b"Hello, ChaCha20-Poly1305!";
+        let message = b"Hello, ChaCha20-Poly1305-IETF!";
         let additional_data = b"Important metadata";
 
         // Encrypt the message
