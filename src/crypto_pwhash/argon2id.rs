@@ -184,11 +184,11 @@ pub fn pwhash(
     let result = unsafe {
         libsodium_sys::crypto_pwhash_argon2id(
             output.as_mut_ptr(),
-            out_len as libc::c_ulonglong,
-            password.as_ptr() as *const libc::c_char,
-            password.len() as libc::c_ulonglong,
+            out_len as u64,
+            password.as_ptr() as *const std::os::raw::c_char,
+            password.len() as u64,
             salt.as_ptr(),
-            opslimit as libc::c_ulonglong,
+            opslimit,
             memlimit as libc::size_t,
             ALG,
         )
@@ -250,10 +250,10 @@ pub fn pwhash_str(password: &[u8], opslimit: u64, memlimit: usize) -> Result<Str
     let mut output = vec![0u8; STRBYTES];
     let result = unsafe {
         libsodium_sys::crypto_pwhash_argon2id_str(
-            output.as_mut_ptr() as *mut libc::c_char,
-            password.as_ptr() as *const libc::c_char,
-            password.len() as libc::c_ulonglong,
-            opslimit as libc::c_ulonglong,
+            output.as_mut_ptr() as *mut std::os::raw::c_char,
+            password.as_ptr() as *const std::os::raw::c_char,
+            password.len() as u64,
+            opslimit,
             memlimit as libc::size_t,
         )
     };
@@ -351,9 +351,9 @@ pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> bool {
 
     let result = unsafe {
         libsodium_sys::crypto_pwhash_argon2id_str_verify(
-            hash_str.as_ptr() as *const libc::c_char,
-            password.as_ptr() as *const libc::c_char,
-            password.len() as libc::c_ulonglong,
+            hash_str.as_ptr() as *const std::os::raw::c_char,
+            password.as_ptr() as *const std::os::raw::c_char,
+            password.len() as u64,
         )
     };
 
@@ -438,8 +438,8 @@ pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> bool {
 pub fn pwhash_str_needs_rehash(hash_str: &str, opslimit: u64, memlimit: usize) -> Option<bool> {
     let result = unsafe {
         libsodium_sys::crypto_pwhash_argon2id_str_needs_rehash(
-            hash_str.as_ptr() as *const libc::c_char,
-            opslimit as libc::c_ulonglong,
+            hash_str.as_ptr() as *const std::os::raw::c_char,
+            opslimit,
             memlimit as libc::size_t,
         )
     };
@@ -458,9 +458,15 @@ mod tests {
 
     #[test]
     fn test_max_constants_match_libsodium() {
-        assert_eq!(BYTES_MAX, unsafe { libsodium_sys::crypto_pwhash_argon2id_bytes_max() });
-        assert_eq!(PASSWD_MAX, unsafe { libsodium_sys::crypto_pwhash_argon2id_passwd_max() });
-        assert_eq!(MEMLIMIT_MAX, unsafe { libsodium_sys::crypto_pwhash_argon2id_memlimit_max() });
+        assert_eq!(BYTES_MAX, unsafe {
+            libsodium_sys::crypto_pwhash_argon2id_bytes_max()
+        });
+        assert_eq!(PASSWD_MAX, unsafe {
+            libsodium_sys::crypto_pwhash_argon2id_passwd_max()
+        });
+        assert_eq!(MEMLIMIT_MAX, unsafe {
+            libsodium_sys::crypto_pwhash_argon2id_memlimit_max()
+        });
     }
 
     #[test]

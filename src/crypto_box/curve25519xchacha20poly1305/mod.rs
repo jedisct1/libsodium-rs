@@ -58,7 +58,6 @@
 //! ```
 
 use crate::{Result, SodiumError};
-use libc;
 use std::convert::TryFrom;
 
 /// Number of bytes in a public key
@@ -536,7 +535,7 @@ pub fn encrypt(
         libsodium_sys::crypto_box_curve25519xchacha20poly1305_easy(
             ciphertext.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_ref().as_ptr(),
             recipient_pk.as_bytes().as_ptr(),
             sender_sk.as_bytes().as_ptr(),
@@ -567,7 +566,7 @@ pub fn decrypt(
         libsodium_sys::crypto_box_curve25519xchacha20poly1305_open_easy(
             message.as_mut_ptr(),
             ciphertext.as_ptr(),
-            ciphertext.len() as libc::c_ulonglong,
+            ciphertext.len() as u64,
             nonce.as_ref().as_ptr(),
             sender_pk.as_bytes().as_ptr(),
             recipient_sk.as_bytes().as_ptr(),
@@ -596,7 +595,7 @@ pub fn encrypt_detached(
             ciphertext.as_mut_ptr(),
             mac.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_ref().as_ptr(),
             recipient_pk.as_bytes().as_ptr(),
             sender_sk.as_bytes().as_ptr(),
@@ -625,7 +624,7 @@ pub fn decrypt_detached(
             message.as_mut_ptr(),
             ciphertext.as_ptr(),
             mac.as_ptr(),
-            ciphertext.len() as libc::c_ulonglong,
+            ciphertext.len() as u64,
             nonce.as_ref().as_ptr(),
             sender_pk.as_bytes().as_ptr(),
             recipient_sk.as_bytes().as_ptr(),
@@ -647,7 +646,7 @@ pub fn seal(message: &[u8], recipient_pk: &PublicKey) -> Result<Vec<u8>> {
         libsodium_sys::crypto_box_curve25519xchacha20poly1305_seal(
             sealed_box.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             recipient_pk.as_bytes().as_ptr(),
         )
     };
@@ -677,7 +676,7 @@ pub fn seal_open(
         libsodium_sys::crypto_box_curve25519xchacha20poly1305_seal_open(
             message.as_mut_ptr(),
             sealed_box.as_ptr(),
-            sealed_box.len() as libc::c_ulonglong,
+            sealed_box.len() as u64,
             recipient_pk.as_bytes().as_ptr(),
             recipient_sk.as_bytes().as_ptr(),
         )

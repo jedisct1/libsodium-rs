@@ -254,7 +254,11 @@ pub fn bytes_to_ipv4(bytes: &[u8; BYTES]) -> Option<[u8; 4]> {
 pub fn parse_ip(ip: &str) -> Result<[u8; BYTES], SodiumError> {
     let mut bin = [0u8; BYTES];
     let ret = unsafe {
-        libsodium_sys::sodium_ip2bin(bin.as_mut_ptr(), ip.as_ptr() as *const libc::c_char, ip.len())
+        libsodium_sys::sodium_ip2bin(
+            bin.as_mut_ptr(),
+            ip.as_ptr() as *const std::os::raw::c_char,
+            ip.len(),
+        )
     };
     if ret == 0 {
         Ok(bin)
@@ -285,7 +289,13 @@ pub fn parse_ip(ip: &str) -> Result<[u8; BYTES], SodiumError> {
 /// ```
 pub fn format_ip(bin: &[u8; BYTES]) -> String {
     let mut buf = [0i8; IP_MAXLEN];
-    let ptr = unsafe { libsodium_sys::sodium_bin2ip(buf.as_mut_ptr() as *mut libc::c_char, IP_MAXLEN, bin.as_ptr()) };
+    let ptr = unsafe {
+        libsodium_sys::sodium_bin2ip(
+            buf.as_mut_ptr() as *mut std::os::raw::c_char,
+            IP_MAXLEN,
+            bin.as_ptr(),
+        )
+    };
     if ptr.is_null() {
         // This shouldn't happen for valid 16-byte input, but handle it anyway
         String::new()

@@ -107,7 +107,7 @@ pub mod shake128 {
                 output.as_mut_ptr(),
                 output_len,
                 input.as_ptr(),
-                input.len() as libc::c_ulonglong,
+                input.len() as u64,
             )
         };
 
@@ -194,7 +194,7 @@ pub mod shake128 {
                 libsodium_sys::crypto_xof_shake128_update(
                     &mut self.state,
                     input.as_ptr(),
-                    input.len() as libc::c_ulonglong,
+                    input.len() as u64,
                 )
             };
 
@@ -311,7 +311,7 @@ pub mod shake256 {
                 output.as_mut_ptr(),
                 output_len,
                 input.as_ptr(),
-                input.len() as libc::c_ulonglong,
+                input.len() as u64,
             )
         };
 
@@ -387,7 +387,7 @@ pub mod shake256 {
                 libsodium_sys::crypto_xof_shake256_update(
                     &mut self.state,
                     input.as_ptr(),
-                    input.len() as libc::c_ulonglong,
+                    input.len() as u64,
                 )
             };
 
@@ -529,7 +529,7 @@ pub mod turboshake128 {
                 output.as_mut_ptr(),
                 output_len,
                 input.as_ptr(),
-                input.len() as libc::c_ulonglong,
+                input.len() as u64,
             )
         };
 
@@ -642,7 +642,7 @@ pub mod turboshake128 {
                 libsodium_sys::crypto_xof_turboshake128_update(
                     &mut self.state,
                     input.as_ptr(),
-                    input.len() as libc::c_ulonglong,
+                    input.len() as u64,
                 )
             };
 
@@ -780,7 +780,7 @@ pub mod turboshake256 {
                 output.as_mut_ptr(),
                 output_len,
                 input.as_ptr(),
-                input.len() as libc::c_ulonglong,
+                input.len() as u64,
             )
         };
 
@@ -858,7 +858,7 @@ pub mod turboshake256 {
                 libsodium_sys::crypto_xof_turboshake256_update(
                     &mut self.state,
                     input.as_ptr(),
-                    input.len() as libc::c_ulonglong,
+                    input.len() as u64,
                 )
             };
 

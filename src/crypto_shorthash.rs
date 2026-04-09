@@ -55,7 +55,6 @@
 //! ```
 
 use crate::{Result, SodiumError};
-use libc;
 use std::convert::TryFrom;
 
 /// Number of bytes in a key
@@ -135,7 +134,7 @@ pub fn shorthash(input: &[u8], key: &Key) -> [u8; BYTES] {
         libsodium_sys::crypto_shorthash(
             out.as_mut_ptr(),
             input.as_ptr(),
-            input.len() as libc::c_ulonglong,
+            input.len() as u64,
             key.as_bytes().as_ptr(),
         );
     }
@@ -169,7 +168,7 @@ impl From<Key> for [u8; KEYBYTES] {
     }
 }
 
-/// SipHash-2-4 hash function with 128-bit output
+/// SipHash-2-4 hash function with 64-bit output
 pub mod siphash24 {
     use super::*;
 
@@ -232,7 +231,7 @@ pub mod siphash24 {
             libsodium_sys::crypto_shorthash_siphash24(
                 out.as_mut_ptr(),
                 input.as_ptr(),
-                input.len() as libc::c_ulonglong,
+                input.len() as u64,
                 key.as_bytes().as_ptr(),
             );
         }
@@ -330,7 +329,7 @@ pub mod siphashx24 {
             libsodium_sys::crypto_shorthash_siphashx24(
                 out.as_mut_ptr(),
                 input.as_ptr(),
-                input.len() as libc::c_ulonglong,
+                input.len() as u64,
                 key.as_bytes().as_ptr(),
             );
         }

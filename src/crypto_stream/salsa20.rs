@@ -172,7 +172,7 @@ pub fn stream(len: usize, nonce: &Nonce, key: &Key) -> Vec<u8> {
     unsafe {
         libsodium_sys::crypto_stream_salsa20(
             output.as_mut_ptr(),
-            len as libc::c_ulonglong,
+            len as u64,
             nonce.as_ref().as_ptr(),
             key.as_bytes().as_ptr(),
         );
@@ -234,7 +234,7 @@ pub fn stream_xor(message: &[u8], nonce: &Nonce, key: &Key) -> Vec<u8> {
         libsodium_sys::crypto_stream_salsa20_xor(
             output.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_ref().as_ptr(),
             key.as_bytes().as_ptr(),
         );

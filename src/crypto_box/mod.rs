@@ -727,7 +727,7 @@ pub fn seal(
         libsodium_sys::crypto_box_easy(
             ciphertext.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_ref().as_ptr(),
             recipient_pk.as_bytes().as_ptr(),
             sender_sk.as_bytes().as_ptr(),
@@ -811,7 +811,7 @@ pub fn seal_afternm(
         libsodium_sys::crypto_box_easy_afternm(
             ciphertext.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_ref().as_ptr(),
             precomputed_key.as_bytes().as_ptr(),
         )
@@ -901,7 +901,7 @@ pub fn open(ciphertext: &[u8], nonce: &Nonce, pk: &PublicKey, sk: &SecretKey) ->
         libsodium_sys::crypto_box_open_easy(
             message.as_mut_ptr(),
             ciphertext.as_ptr(),
-            ciphertext.len() as libc::c_ulonglong,
+            ciphertext.len() as u64,
             nonce.as_ref().as_ptr(),
             pk.as_bytes().as_ptr(),
             sk.as_bytes().as_ptr(),
@@ -994,7 +994,7 @@ pub fn open_afternm(
         libsodium_sys::crypto_box_open_easy_afternm(
             message.as_mut_ptr(),
             ciphertext.as_ptr(),
-            ciphertext.len() as libc::c_ulonglong,
+            ciphertext.len() as u64,
             nonce.as_ref().as_ptr(),
             precomputed_key.as_bytes().as_ptr(),
         )
@@ -1207,7 +1207,7 @@ pub fn seal_detached(
             ciphertext.as_mut_ptr(),
             mac.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_ref().as_ptr(),
             recipient_pk.as_bytes().as_ptr(),
             sender_sk.as_bytes().as_ptr(),
@@ -1264,7 +1264,7 @@ pub fn open_detached(
             message.as_mut_ptr(),
             ciphertext.as_ptr(),
             mac.as_ptr(),
-            ciphertext.len() as libc::c_ulonglong,
+            ciphertext.len() as u64,
             nonce.as_ref().as_ptr(),
             pk.as_bytes().as_ptr(),
             sk.as_bytes().as_ptr(),
@@ -1317,7 +1317,7 @@ pub fn seal_detached_afternm(
             ciphertext.as_mut_ptr(),
             mac.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_ref().as_ptr(),
             precomputed_key.as_bytes().as_ptr(),
         )
@@ -1355,7 +1355,7 @@ pub fn open_detached_afternm(
             message.as_mut_ptr(),
             ciphertext.as_ptr(),
             mac.as_ptr(),
-            ciphertext.len() as libc::c_ulonglong,
+            ciphertext.len() as u64,
             nonce.as_ref().as_ptr(),
             precomputed_key.as_bytes().as_ptr(),
         )
@@ -1403,7 +1403,7 @@ pub fn seal_box(message: &[u8], recipient_pk: &PublicKey) -> Result<Vec<u8>> {
         libsodium_sys::crypto_box_seal(
             sealed_box.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             recipient_pk.as_bytes().as_ptr(),
         )
     };
@@ -1444,7 +1444,7 @@ pub fn open_sealed_box(
         libsodium_sys::crypto_box_seal_open(
             message.as_mut_ptr(),
             sealed_box.as_ptr(),
-            sealed_box.len() as libc::c_ulonglong,
+            sealed_box.len() as u64,
             recipient_pk.as_bytes().as_ptr(),
             recipient_sk.as_bytes().as_ptr(),
         )
@@ -1497,7 +1497,7 @@ pub fn seal_nacl(
         libsodium_sys::crypto_box(
             ciphertext.as_mut_ptr(),
             padded_message.as_ptr(),
-            padded_message.len() as libc::c_ulonglong,
+            padded_message.len() as u64,
             nonce.as_ref().as_ptr(),
             pk.as_bytes().as_ptr(),
             sk.as_bytes().as_ptr(),
@@ -1553,7 +1553,7 @@ pub fn open_nacl(
         libsodium_sys::crypto_box_open(
             message.as_mut_ptr(),
             padded_ciphertext.as_ptr(),
-            padded_ciphertext.len() as libc::c_ulonglong,
+            padded_ciphertext.len() as u64,
             nonce.as_ref().as_ptr(),
             pk.as_bytes().as_ptr(),
             sk.as_bytes().as_ptr(),
@@ -1603,7 +1603,7 @@ pub fn seal_nacl_afternm(
         libsodium_sys::crypto_box_afternm(
             ciphertext.as_mut_ptr(),
             padded_message.as_ptr(),
-            padded_message.len() as libc::c_ulonglong,
+            padded_message.len() as u64,
             nonce.as_ref().as_ptr(),
             precomputed_key.as_bytes().as_ptr(),
         )
@@ -1656,7 +1656,7 @@ pub fn open_nacl_afternm(
         libsodium_sys::crypto_box_open_afternm(
             message.as_mut_ptr(),
             padded_ciphertext.as_ptr(),
-            padded_ciphertext.len() as libc::c_ulonglong,
+            padded_ciphertext.len() as u64,
             nonce.as_ref().as_ptr(),
             precomputed_key.as_bytes().as_ptr(),
         )

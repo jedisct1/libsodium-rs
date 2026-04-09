@@ -272,7 +272,7 @@ impl State {
             libsodium_sys::crypto_generichash_update(
                 &mut self.state,
                 input.as_ptr(),
-                input.len() as libc::c_ulonglong,
+                input.len() as u64,
             );
         }
     }

@@ -57,7 +57,6 @@
 //! ```
 
 use crate::{Result, SodiumError};
-use libc;
 use std::convert::TryFrom;
 
 /// Number of bytes in a public key
@@ -638,7 +637,7 @@ pub fn encrypt_afternm(
         libsodium_sys::crypto_box_easy_afternm(
             ciphertext.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_bytes().as_ptr(),
             precomputed_key.as_bytes().as_ptr(),
         )
@@ -689,7 +688,7 @@ pub fn decrypt_afternm(
         libsodium_sys::crypto_box_open_easy_afternm(
             message.as_mut_ptr(),
             ciphertext.as_ptr(),
-            ciphertext.len() as libc::c_ulonglong,
+            ciphertext.len() as u64,
             nonce.as_bytes().as_ptr(),
             precomputed_key.as_bytes().as_ptr(),
         )
@@ -741,7 +740,7 @@ pub fn encrypt(
         libsodium_sys::crypto_box_easy(
             ciphertext.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_bytes().as_ptr(),
             recipient_pk.as_bytes().as_ptr(),
             sender_sk.as_bytes().as_ptr(),
@@ -799,7 +798,7 @@ pub fn decrypt(
         libsodium_sys::crypto_box_open_easy(
             message.as_mut_ptr(),
             ciphertext.as_ptr(),
-            ciphertext.len() as libc::c_ulonglong,
+            ciphertext.len() as u64,
             nonce.as_bytes().as_ptr(),
             sender_pk.as_bytes().as_ptr(),
             recipient_sk.as_bytes().as_ptr(),
@@ -853,7 +852,7 @@ pub fn encrypt_nacl(
         libsodium_sys::crypto_box_curve25519xsalsa20poly1305(
             ciphertext.as_mut_ptr(),
             padded_message.as_ptr(),
-            padded_message.len() as libc::c_ulonglong,
+            padded_message.len() as u64,
             nonce.as_bytes().as_ptr(),
             recipient_pk.as_bytes().as_ptr(),
             sender_sk.as_bytes().as_ptr(),
@@ -909,7 +908,7 @@ pub fn decrypt_nacl(
         libsodium_sys::crypto_box_curve25519xsalsa20poly1305_open(
             message.as_mut_ptr(),
             padded_ciphertext.as_ptr(),
-            padded_ciphertext.len() as libc::c_ulonglong,
+            padded_ciphertext.len() as u64,
             nonce.as_bytes().as_ptr(),
             sender_pk.as_bytes().as_ptr(),
             recipient_sk.as_bytes().as_ptr(),
@@ -959,7 +958,7 @@ pub fn encrypt_nacl_afternm(
         libsodium_sys::crypto_box_curve25519xsalsa20poly1305_afternm(
             ciphertext.as_mut_ptr(),
             padded_message.as_ptr(),
-            padded_message.len() as libc::c_ulonglong,
+            padded_message.len() as u64,
             nonce.as_bytes().as_ptr(),
             precomputed_key.as_bytes().as_ptr(),
         )
@@ -1012,7 +1011,7 @@ pub fn decrypt_nacl_afternm(
         libsodium_sys::crypto_box_curve25519xsalsa20poly1305_open_afternm(
             message.as_mut_ptr(),
             padded_ciphertext.as_ptr(),
-            padded_ciphertext.len() as libc::c_ulonglong,
+            padded_ciphertext.len() as u64,
             nonce.as_bytes().as_ptr(),
             precomputed_key.as_bytes().as_ptr(),
         )

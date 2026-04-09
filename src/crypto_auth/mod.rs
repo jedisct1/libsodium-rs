@@ -54,7 +54,6 @@
 //! ```
 
 use crate::{Result, SodiumError};
-use libc;
 use std::convert::TryFrom;
 
 /// Number of bytes in an authentication tag (32 bytes)
@@ -338,7 +337,7 @@ pub fn auth(message: &[u8], key: &Key) -> Result<Tag> {
         libsodium_sys::crypto_auth(
             tag.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             key.as_bytes().as_ptr(),
         )
     };
@@ -399,7 +398,7 @@ pub fn verify(tag: &Tag, message: &[u8], key: &Key) -> bool {
         libsodium_sys::crypto_auth_verify(
             tag.as_bytes().as_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             key.as_bytes().as_ptr(),
         )
     };

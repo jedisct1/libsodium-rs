@@ -466,7 +466,7 @@ pub fn encrypt(message: &[u8], nonce: &Nonce, key: &Key) -> Vec<u8> {
         libsodium_sys::crypto_secretbox_xchacha20poly1305_easy(
             ciphertext.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_ref().as_ptr(),
             key.as_bytes().as_ptr(),
         );
@@ -553,7 +553,7 @@ pub fn decrypt(ciphertext: &[u8], nonce: &Nonce, key: &Key) -> Result<Vec<u8>> {
         libsodium_sys::crypto_secretbox_xchacha20poly1305_open_easy(
             message.as_mut_ptr(),
             ciphertext.as_ptr(),
-            ciphertext.len() as libc::c_ulonglong,
+            ciphertext.len() as u64,
             nonce.as_ref().as_ptr(),
             key.as_bytes().as_ptr(),
         )
@@ -637,7 +637,7 @@ pub fn encrypt_detached(message: &[u8], nonce: &Nonce, key: &Key) -> (Vec<u8>, [
             ciphertext.as_mut_ptr(),
             mac.as_mut_ptr(),
             message.as_ptr(),
-            message.len() as libc::c_ulonglong,
+            message.len() as u64,
             nonce.as_ref().as_ptr(),
             key.as_bytes().as_ptr(),
         );
@@ -730,7 +730,7 @@ pub fn decrypt_detached(
             message.as_mut_ptr(),
             ciphertext.as_ptr(),
             mac.as_ptr(),
-            ciphertext.len() as libc::c_ulonglong,
+            ciphertext.len() as u64,
             nonce.as_ref().as_ptr(),
             key.as_bytes().as_ptr(),
         )

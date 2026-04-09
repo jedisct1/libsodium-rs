@@ -142,7 +142,7 @@ impl State {
             libsodium_sys::crypto_auth_hmacsha256_update(
                 self.state.as_mut(),
                 input.as_ptr(),
-                input.len() as libc::c_ulonglong,
+                input.len() as u64,
             )
         };
 
@@ -178,7 +178,7 @@ pub fn auth(input: &[u8], key: &Key) -> Result<[u8; BYTES]> {
         libsodium_sys::crypto_auth_hmacsha256(
             mac.as_mut_ptr(),
             input.as_ptr(),
-            input.len() as libc::c_ulonglong,
+            input.len() as u64,
             key.as_bytes().as_ptr(),
         )
     };
@@ -196,7 +196,7 @@ pub fn verify(mac: &[u8; BYTES], input: &[u8], key: &Key) -> Result<()> {
         libsodium_sys::crypto_auth_hmacsha256_verify(
             mac.as_ptr(),
             input.as_ptr(),
-            input.len() as libc::c_ulonglong,
+            input.len() as u64,
             key.as_bytes().as_ptr(),
         )
     };

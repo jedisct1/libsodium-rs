@@ -87,11 +87,7 @@ pub const SHA512_BYTES: usize = sha512::BYTES;
 pub fn hash(data: &[u8]) -> [u8; SHA512_BYTES] {
     let mut out = [0u8; SHA512_BYTES];
     unsafe {
-        libsodium_sys::crypto_hash(
-            out.as_mut_ptr(),
-            data.as_ptr(),
-            data.len() as libc::c_ulonglong,
-        );
+        libsodium_sys::crypto_hash(out.as_mut_ptr(), data.as_ptr(), data.len() as u64);
     }
     out
 }

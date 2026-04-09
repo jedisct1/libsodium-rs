@@ -387,11 +387,10 @@ pub fn derive_from_key(
             subkey.as_mut_ptr(),
             subkey_len as libc::size_t,
             subkey_id,
-            context.as_ptr() as *const libc::c_char,
+            context.as_ptr() as *const std::os::raw::c_char,
             master_key.as_bytes().as_ptr(),
         )
     };
-
     if result != 0 {
         return Err(SodiumError::OperationError("key derivation failed".into()));
     }
@@ -621,8 +620,8 @@ pub mod blake2b {
             libsodium_sys::crypto_kdf_blake2b_derive_from_key(
                 subkey.as_mut_ptr(),
                 subkey_len as libc::size_t,
-                subkey_id as libc::c_ulonglong,
-                context.as_ptr() as *const libc::c_char,
+                subkey_id,
+                context.as_ptr() as *const std::os::raw::c_char,
                 master_key.as_bytes().as_ptr(),
             )
         };
@@ -872,7 +871,7 @@ pub mod hkdf {
             let mut out = vec![0u8; out_len];
 
             let ctx_ptr = match ctx {
-                Some(c) => c.as_ptr() as *const libc::c_char,
+                Some(c) => c.as_ptr() as *const std::os::raw::c_char,
                 None => std::ptr::null(),
             };
             let ctx_len = ctx.map_or(0, |c| c.len());
@@ -1232,7 +1231,7 @@ pub mod hkdf {
             let mut out = vec![0u8; out_len];
 
             let ctx_ptr = match ctx {
-                Some(c) => c.as_ptr() as *const libc::c_char,
+                Some(c) => c.as_ptr() as *const std::os::raw::c_char,
                 None => std::ptr::null(),
             };
             let ctx_len = ctx.map_or(0, |c| c.len());

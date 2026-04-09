@@ -570,7 +570,8 @@ mod tests {
         let ad = b"Additional data";
 
         let ciphertext = chacha20poly1305_ietf::encrypt(message, Some(ad), &nonce, &key).unwrap();
-        let decrypted = chacha20poly1305_ietf::decrypt(&ciphertext, Some(ad), &nonce, &key).unwrap();
+        let decrypted =
+            chacha20poly1305_ietf::decrypt(&ciphertext, Some(ad), &nonce, &key).unwrap();
         assert_eq!(message, &decrypted[..]);
 
         let wrong_ad = b"Wrong data";
@@ -609,7 +610,8 @@ mod tests {
 
         let state = chacha20poly1305_ietf_state::State::from_key(&key).unwrap();
         let precomp_ciphertext =
-            chacha20poly1305_ietf_state::encrypt_afternm(message, Some(ad), &nonce, &state).unwrap();
+            chacha20poly1305_ietf_state::encrypt_afternm(message, Some(ad), &nonce, &state)
+                .unwrap();
         let precomp_decrypted = chacha20poly1305_ietf_state::decrypt_afternm(
             &precomp_ciphertext,
             Some(ad),
@@ -620,8 +622,13 @@ mod tests {
         assert_eq!(message, &precomp_decrypted[..]);
 
         let (precomp_detached_ciphertext, precomp_tag) =
-            chacha20poly1305_ietf_state::encrypt_detached_afternm(message, Some(ad), &nonce, &state)
-                .unwrap();
+            chacha20poly1305_ietf_state::encrypt_detached_afternm(
+                message,
+                Some(ad),
+                &nonce,
+                &state,
+            )
+            .unwrap();
         let precomp_detached_decrypted = chacha20poly1305_ietf_state::decrypt_detached_afternm(
             &precomp_detached_ciphertext,
             &precomp_tag,

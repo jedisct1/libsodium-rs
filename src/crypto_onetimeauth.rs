@@ -260,7 +260,7 @@ impl State {
             libsodium_sys::crypto_onetimeauth_update(
                 self.state.as_mut(),
                 input.as_ptr(),
-                input.len() as libc::c_ulonglong,
+                input.len() as u64,
             );
         }
     }
@@ -345,7 +345,7 @@ pub fn onetimeauth(input: &[u8], key: &Key) -> Tag {
         libsodium_sys::crypto_onetimeauth(
             tag.as_mut_ptr(),
             input.as_ptr(),
-            input.len() as libc::c_ulonglong,
+            input.len() as u64,
             key.as_bytes().as_ptr(),
         );
     }
@@ -407,7 +407,7 @@ pub fn verify(tag: &Tag, input: &[u8], key: &Key) -> bool {
         libsodium_sys::crypto_onetimeauth_verify(
             tag.as_bytes().as_ptr(),
             input.as_ptr(),
-            input.len() as libc::c_ulonglong,
+            input.len() as u64,
             key.as_bytes().as_ptr(),
         )
     };
