@@ -195,7 +195,7 @@ fn main() {
 use libsodium_rs as sodium;
 use sodium::crypto_scalarmult::curve25519;
 use sodium::ensure_init;
-use sodium::crypto_hash::blake2b;
+use sodium::crypto_generichash::blake2b;
 
 fn main() {
     // Initialize libsodium
