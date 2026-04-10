@@ -22,7 +22,7 @@ A comprehensive, idiomatic Rust wrapper for [libsodium](https://libsodium.org), 
 
 _Note: This is a non-exhaustive list of the supported algorithms and operations_
 
-- **Public-key Cryptography**: Encryption, signatures, and key exchange
+- **Public-key Cryptography**: Encryption, signatures, key exchange, and key encapsulation
   - X25519, Ed25519, Curve25519, Ristretto255
   - XSalsa20-Poly1305, XChaCha20-Poly1305
   - Key exchange with X25519 and Ed25519 conversions
@@ -31,7 +31,7 @@ _Note: This is a non-exhaustive list of the supported algorithms and operations_
   - AES-256-GCM
   - AEGIS-128L and AEGIS-256
 - **Message Authentication**: HMAC and Poly1305
-- **Hashing**: SHA-256, SHA-512, BLAKE2b
+- **Hashing**: SHA-256, SHA-512, SHA3-256, SHA3-512, BLAKE2b
 - **Password Hashing**: Argon2, Scrypt
 - **Key Derivation**: HKDF, BLAKE2b-based KDF
 - **Random Number Generation**: Secure random bytes

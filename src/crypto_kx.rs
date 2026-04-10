@@ -82,6 +82,7 @@
 
 use crate::{Result, SodiumError};
 use libsodium_sys;
+use std::ffi::CStr;
 
 /// Number of bytes in a public key (32)
 ///
@@ -93,11 +94,17 @@ pub const PUBLICKEYBYTES: usize = libsodium_sys::crypto_kx_PUBLICKEYBYTES as usi
 /// This is the size of a Curve25519 secret key used in the X25519 key exchange.
 pub const SECRETKEYBYTES: usize = libsodium_sys::crypto_kx_SECRETKEYBYTES as usize;
 
+/// Number of bytes in a seed for deterministic key generation (32)
+pub const SEEDBYTES: usize = libsodium_sys::crypto_kx_SEEDBYTES as usize;
+
 /// Number of bytes in a session key (32)
 ///
 /// This is the size of the symmetric keys generated through the key exchange.
 /// These keys can be used for symmetric encryption algorithms like XChaCha20-Poly1305.
 pub const SESSIONKEYBYTES: usize = libsodium_sys::crypto_kx_SESSIONKEYBYTES as usize;
+
+/// Name of the key exchange primitive.
+pub const PRIMITIVE: &str = "x25519blake2b";
 
 /// A public key for key exchange
 ///
@@ -497,9 +504,57 @@ impl KeyPair {
         })
     }
 
+    /// Generate a deterministic key pair from a seed.
+    pub fn from_seed(seed: &[u8]) -> Result<Self> {
+        if seed.len() != SEEDBYTES {
+            return Err(SodiumError::InvalidInput(format!(
+                "invalid seed length: expected {}, got {}",
+                SEEDBYTES,
+                seed.len()
+            )));
+        }
+
+        let mut pk = [0u8; PUBLICKEYBYTES];
+        let mut sk = [0u8; SECRETKEYBYTES];
+
+        let result = unsafe {
+            libsodium_sys::crypto_kx_seed_keypair(pk.as_mut_ptr(), sk.as_mut_ptr(), seed.as_ptr())
+        };
+
+        if result != 0 {
+            return Err(SodiumError::OperationError(
+                "failed to generate keypair from seed".into(),
+            ));
+        }
+
+        Ok(Self {
+            public_key: PublicKey(pk),
+            secret_key: SecretKey(sk),
+        })
+    }
+
     /// Convert the KeyPair into a tuple of (PublicKey, SecretKey)
     pub fn into_tuple(self) -> (PublicKey, SecretKey) {
         (self.public_key, self.secret_key)
+    }
+}
+
+/// Returns the seed size for deterministic key generation.
+pub fn seedbytes() -> usize {
+    unsafe { libsodium_sys::crypto_kx_seedbytes() }
+}
+
+/// Returns the session key size.
+pub fn sessionkeybytes() -> usize {
+    unsafe { libsodium_sys::crypto_kx_sessionkeybytes() }
+}
+
+/// Returns the name of the key exchange primitive.
+pub fn primitive() -> &'static str {
+    unsafe {
+        CStr::from_ptr(libsodium_sys::crypto_kx_primitive())
+            .to_str()
+            .expect("crypto_kx primitive should be valid UTF-8")
     }
 }
 
@@ -706,6 +761,23 @@ mod tests {
         let sk = keypair.secret_key;
         assert_eq!(pk.as_bytes().len(), PUBLICKEYBYTES);
         assert_eq!(sk.as_bytes().len(), SECRETKEYBYTES);
+    }
+
+    #[test]
+    fn test_constants_and_primitive() {
+        assert_eq!(seedbytes(), SEEDBYTES);
+        assert_eq!(sessionkeybytes(), SESSIONKEYBYTES);
+        assert_eq!(primitive(), PRIMITIVE);
+    }
+
+    #[test]
+    fn test_seed_keypair() {
+        let seed = [42u8; SEEDBYTES];
+        let keypair1 = KeyPair::from_seed(&seed).unwrap();
+        let keypair2 = KeyPair::from_seed(&seed).unwrap();
+
+        assert_eq!(keypair1.public_key, keypair2.public_key);
+        assert_eq!(keypair1.secret_key, keypair2.secret_key);
     }
 
     #[test]

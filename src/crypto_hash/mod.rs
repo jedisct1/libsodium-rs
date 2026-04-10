@@ -37,12 +37,20 @@
 //! ```
 
 pub mod sha256;
+pub mod sha3256;
+pub mod sha3512;
 pub mod sha512;
 
 // No need for Result import since hash functions can't fail
 
 /// Number of bytes in a SHA-256 hash output (32 bytes, 256 bits)
 pub const SHA256_BYTES: usize = sha256::BYTES;
+
+/// Number of bytes in a SHA3-256 hash output (32 bytes, 256 bits)
+pub const SHA3256_BYTES: usize = sha3256::BYTES;
+
+/// Number of bytes in a SHA3-512 hash output (64 bytes, 512 bits)
+pub const SHA3512_BYTES: usize = sha3512::BYTES;
 
 /// Number of bytes in a SHA-512 hash output (64 bytes, 512 bits)
 pub const SHA512_BYTES: usize = sha512::BYTES;
@@ -90,6 +98,16 @@ pub fn hash(data: &[u8]) -> [u8; SHA512_BYTES] {
         libsodium_sys::crypto_hash(out.as_mut_ptr(), data.as_ptr(), data.len() as u64);
     }
     out
+}
+
+/// Computes a SHA3-256 hash of the input data.
+pub fn hash_sha3256(data: &[u8]) -> [u8; SHA3256_BYTES] {
+    sha3256::hash(data)
+}
+
+/// Computes a SHA3-512 hash of the input data.
+pub fn hash_sha3512(data: &[u8]) -> [u8; SHA3512_BYTES] {
+    sha3512::hash(data)
 }
 
 /// Computes a SHA-256 hash of the input data
@@ -208,6 +226,36 @@ mod tests {
         assert_eq!(
             hash_hex,
             "916f0027a575074ce72a331777c3478d6513f786a591bd892da1a577bf2335f9"
+        );
+    }
+
+    #[test]
+    fn test_hash_sha3256() {
+        let data = b"test data";
+        let hash = hash_sha3256(data);
+
+        let mut encoded = vec![0u8; hash.len() * 2];
+        let encoded = Hex::encode(&mut encoded, hash).unwrap();
+        let hash_hex = std::str::from_utf8(encoded).unwrap();
+
+        assert_eq!(
+            hash_hex,
+            "fc88e0ac33ff105e376f4ece95fb06925d5ab20080dbe3aede7dd47e45dfd931"
+        );
+    }
+
+    #[test]
+    fn test_hash_sha3512() {
+        let data = b"test data";
+        let hash = hash_sha3512(data);
+
+        let mut encoded = vec![0u8; hash.len() * 2];
+        let encoded = Hex::encode(&mut encoded, hash).unwrap();
+        let hash_hex = std::str::from_utf8(encoded).unwrap();
+
+        assert_eq!(
+            hash_hex,
+            "bb9e2a02237e6f8adcaef9fc14b898b7c80cedc114110472cdf925233621b705963c76e7b113bed3c278ff11671a6d1cdcba545e009ff4c0c02539899241993b"
         );
     }
 

@@ -39,6 +39,7 @@
 //! - **[`crypto_hash`]**: Traditional cryptographic hash functions (SHA-256, SHA-512)
 //! - **[`crypto_ipcrypt`]**: IP address encryption for privacy-preserving storage
 //! - **[`crypto_kdf`]**: Key derivation functions
+//! - **[`crypto_kem`]**: Key encapsulation mechanisms
 //! - **[`crypto_kx`]**: Key exchange
 //! - **[`crypto_pwhash`]**: Password hashing and key derivation
 //! - **[`crypto_scalarmult`]**: Elliptic curve operations
@@ -121,6 +122,7 @@ pub mod crypto_generichash;
 pub mod crypto_hash;
 pub mod crypto_ipcrypt;
 pub mod crypto_kdf;
+pub mod crypto_kem;
 pub mod crypto_kx;
 pub mod crypto_onetimeauth;
 pub mod crypto_pwhash;
