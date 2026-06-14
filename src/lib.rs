@@ -56,7 +56,7 @@
 use thiserror::Error;
 
 /// Error type for libsodium operations
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum SodiumError {
     /// Hex decoding failed
     #[error("Invalid hexadecimal string")]
