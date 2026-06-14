@@ -2586,8 +2586,8 @@ mod tests {
         // The product should be 1 (identity element)
         // In little-endian representation, 1 is [1, 0, 0, ...]
         assert_eq!(product[0], 1);
-        for i in 1..ristretto255::SCALARBYTES {
-            assert_eq!(product[i], 0);
+        for &byte in product.iter().take(ristretto255::SCALARBYTES).skip(1) {
+            assert_eq!(byte, 0);
         }
 
         // Test that inverting zero fails

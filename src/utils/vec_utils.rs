@@ -222,10 +222,7 @@ pub fn secure_vec<T: Default + Clone>(size: usize) -> io::Result<SecureVec<T>> {
     let ptr = super::malloc(mem_size) as *mut T;
 
     if ptr.is_null() {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            "Failed to allocate secure memory",
-        ));
+        return Err(io::Error::other("Failed to allocate secure memory"));
     }
 
     // Initialize the memory with default values
@@ -571,10 +568,7 @@ impl<T: Default + Clone> SecureVec<T> {
         let new_ptr = super::malloc(new_mem_size) as *mut T;
 
         if new_ptr.is_null() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Failed to allocate secure memory",
-            ));
+            return Err(io::Error::other("Failed to allocate secure memory"));
         }
 
         // Copy existing elements to the new memory

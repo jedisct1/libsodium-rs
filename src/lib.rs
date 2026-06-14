@@ -141,7 +141,7 @@ pub mod version;
 // No re-exports at the top level - users should import from specific modules
 
 // Initialize libsodium when the library is loaded
-#[ctor::ctor]
+#[ctor::ctor(unsafe)]
 fn initialize() {
     if let Err(e) = ensure_init() {
         panic!("Failed to initialize libsodium: {e}");

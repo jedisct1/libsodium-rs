@@ -17,7 +17,7 @@ include = [
     "README.md",
     "LICENSE",
 ]
-rust-version = "1.60.0"
+rust-version = "1.88.0"
 
 [dependencies]
 libsodium-sys-stable = "1.24.0"

@@ -478,7 +478,7 @@ pub fn hex_encoded_len(bin_len: usize) -> usize {
 /// * `Result<Vec<u8>>` - The binary data or an error if the string is not valid hexadecimal
 pub fn hex2bin(hex: &str) -> Result<Vec<u8>> {
     let hex_bytes = hex.as_bytes();
-    let bin_len = (hex_bytes.len() + 1) / 2;
+    let bin_len = hex_bytes.len().div_ceil(2);
     let mut bin = vec![0u8; bin_len];
     let mut bin_len_ptr = bin_len;
 
@@ -527,7 +527,7 @@ pub fn hex2bin(hex: &str) -> Result<Vec<u8>> {
 pub fn hex2bin_ignore(hex: &str, ignore: &str) -> Result<Vec<u8>> {
     let hex_bytes = hex.as_bytes();
     let ignore_bytes = ignore.as_bytes();
-    let bin_len = (hex_bytes.len() + 1) / 2;
+    let bin_len = hex_bytes.len().div_ceil(2);
     let mut bin = vec![0u8; bin_len];
     let mut bin_len_ptr = bin_len;
 
