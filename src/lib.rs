@@ -64,6 +64,9 @@ pub enum SodiumError {
     /// Base64 decoding failed
     #[error("Invalid Base64 string")]
     Base64DecodingFailed,
+    /// Padding could not be added or removed (invalid padding or block size)
+    #[error("Invalid padding")]
+    InvalidPadding,
     /// Initialization of libsodium failed
     #[error("libsodium initialization failed")]
     InitializationError,

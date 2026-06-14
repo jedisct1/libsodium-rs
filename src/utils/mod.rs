@@ -23,6 +23,8 @@
 //!   Base64 representations.
 //! - **Arithmetic Operations**: Functions for performing arithmetic on big-endian encoded
 //!   numbers, useful for nonce management.
+//! - **Padding**: Functions for padding and unpadding buffers to a block boundary, which
+//!   hides the exact length of a message before it is encrypted.
 //!
 //! ## Example
 //!
@@ -796,8 +798,218 @@ pub unsafe fn mprotect_readwrite(ptr: *mut libc::c_void) -> i32 {
     unsafe { libsodium_sys::sodium_mprotect_readwrite(ptr) }
 }
 
+/// Pad a buffer to a multiple of `blocksize` using the ISO/IEC 7816-4 scheme
+///
+/// Encrypting a message reveals its exact length, and that length alone can leak a
+/// surprising amount about the contents — a yes/no answer, which command was sent, or
+/// which page was requested. Padding the plaintext up to a fixed block boundary before
+/// encryption hides those distinctions: every message in a range of sizes ends up looking
+/// identical on the wire.
+///
+/// This function returns a new buffer holding a copy of `buf` followed by ISO/IEC 7816-4
+/// padding: a single `0x80` byte followed by as many `0x00` bytes as needed to reach the
+/// next multiple of `blocksize`. Because the scheme always writes that marker byte,
+/// padding adds between 1 and `blocksize` bytes — even when `buf` is already a multiple of
+/// the block size — so the padded length is always strictly greater than the original.
+///
+/// Padding must be applied *before* encryption and removed *after* decryption. It is not a
+/// substitute for encryption, and using it to hide the length of a password is discouraged;
+/// hash passwords instead so the transmitted length stays constant.
+///
+/// ## Example
+///
+/// ```rust
+/// use libsodium_rs as sodium;
+/// use sodium::utils;
+/// use sodium::ensure_init;
+///
+/// ensure_init().unwrap();
+///
+/// let message = b"secret";
+/// let padded = utils::pad(message, 16).unwrap();
+///
+/// // Rounded up to the next multiple of the block size
+/// assert_eq!(padded.len(), 16);
+///
+/// // Removing the padding recovers the original message
+/// let unpadded = utils::unpad(&padded, 16).unwrap();
+/// assert_eq!(unpadded, message);
+/// ```
+///
+/// Combined with anonymous encryption, padding hides the plaintext length from an observer:
+///
+/// ```rust
+/// use libsodium_rs as sodium;
+/// use sodium::{crypto_box, utils};
+/// use sodium::ensure_init;
+///
+/// ensure_init().unwrap();
+///
+/// let recipient = crypto_box::KeyPair::generate();
+/// let sender = crypto_box::KeyPair::generate();
+/// let nonce = crypto_box::Nonce::generate();
+///
+/// // Pad before sealing so the ciphertext length only reveals the block count
+/// let message = b"yes";
+/// let padded = utils::pad(message, 64).unwrap();
+/// let ciphertext = crypto_box::seal(&padded, &nonce, &recipient.public_key, &sender.secret_key).unwrap();
+///
+/// // The recipient opens the box and strips the padding back off
+/// let opened = crypto_box::open(&ciphertext, &nonce, &sender.public_key, &recipient.secret_key).unwrap();
+/// let plaintext = utils::unpad(&opened, 64).unwrap();
+/// assert_eq!(plaintext, message);
+/// ```
+///
+/// # Arguments
+/// * `buf` - The data to pad
+/// * `blocksize` - The block size to pad up to; must be greater than zero
+///
+/// # Returns
+/// * `Result<Vec<u8>>` - The padded data, or [`SodiumError::InvalidPadding`] if `blocksize` is zero
+///
+/// [`SodiumError::InvalidPadding`]: crate::SodiumError::InvalidPadding
+pub fn pad(buf: &[u8], blocksize: usize) -> Result<Vec<u8>> {
+    if blocksize == 0 {
+        return Err(crate::SodiumError::InvalidPadding);
+    }
+
+    let unpadded_len = buf.len();
+    // Padding adds at most a full extra block, so this capacity is always sufficient.
+    let max_len = unpadded_len + blocksize;
+    let mut padded = vec![0u8; max_len];
+    padded[..unpadded_len].copy_from_slice(buf);
+
+    let mut padded_len = 0usize;
+    let result = unsafe {
+        libsodium_sys::sodium_pad(
+            &mut padded_len,
+            padded.as_mut_ptr(),
+            unpadded_len,
+            blocksize,
+            max_len,
+        )
+    };
+
+    if result != 0 {
+        return Err(crate::SodiumError::InvalidPadding);
+    }
+
+    padded.truncate(padded_len);
+    Ok(padded)
+}
+
+/// Remove ISO/IEC 7816-4 padding previously added by [`pad`]
+///
+/// This function verifies and strips the padding from `buf`, returning a new buffer with
+/// the original, unpadded data. The padding bytes are validated during this process, so an
+/// invalid trailing pattern is rejected rather than silently mistaken for data.
+///
+/// Padding must be removed *after* decryption: unpad the recovered plaintext, never the
+/// ciphertext.
+///
+/// ## Example
+///
+/// ```rust
+/// use libsodium_rs as sodium;
+/// use sodium::utils;
+/// use sodium::ensure_init;
+///
+/// ensure_init().unwrap();
+///
+/// let message = b"a slightly longer secret message";
+/// let padded = utils::pad(message, 16).unwrap();
+/// let unpadded = utils::unpad(&padded, 16).unwrap();
+/// assert_eq!(unpadded, message);
+/// ```
+///
+/// # Arguments
+/// * `buf` - The padded data
+/// * `blocksize` - The block size used when the data was padded; must be greater than zero
+///
+/// # Returns
+/// * `Result<Vec<u8>>` - The unpadded data, or [`SodiumError::InvalidPadding`] if `blocksize`
+///   is zero or the buffer does not contain valid padding
+///
+/// [`SodiumError::InvalidPadding`]: crate::SodiumError::InvalidPadding
+pub fn unpad(buf: &[u8], blocksize: usize) -> Result<Vec<u8>> {
+    if blocksize == 0 {
+        return Err(crate::SodiumError::InvalidPadding);
+    }
+
+    let padded_len = buf.len();
+    let mut unpadded_len = 0usize;
+    let result = unsafe {
+        libsodium_sys::sodium_unpad(&mut unpadded_len, buf.as_ptr(), padded_len, blocksize)
+    };
+
+    if result != 0 {
+        return Err(crate::SodiumError::InvalidPadding);
+    }
+
+    let mut unpadded = buf.to_vec();
+    unpadded.truncate(unpadded_len);
+    Ok(unpadded)
+}
+
 // Export the vec_utils module
 pub mod vec_utils;
 
 // Re-export SecureVec and secure_vec from vec_utils
 pub use vec_utils::{secure_vec, SecureVec};
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pad_rounds_up_to_block_boundary() {
+        let message = b"secret";
+        let padded = pad(message, 16).unwrap();
+        assert_eq!(padded.len(), 16);
+        assert_eq!(&padded[..message.len()], message);
+
+        let unpadded = unpad(&padded, 16).unwrap();
+        assert_eq!(unpadded, message);
+    }
+
+    #[test]
+    fn test_pad_adds_full_block_when_already_aligned() {
+        // ISO/IEC 7816-4 always writes at least the 0x80 marker, so an already
+        // aligned buffer grows by a whole block.
+        let message = [0u8; 16];
+        let padded = pad(&message, 16).unwrap();
+        assert_eq!(padded.len(), 32);
+        assert_eq!(unpad(&padded, 16).unwrap(), message);
+    }
+
+    #[test]
+    fn test_pad_empty_buffer() {
+        let padded = pad(b"", 8).unwrap();
+        assert_eq!(padded.len(), 8);
+        assert_eq!(unpad(&padded, 8).unwrap(), b"");
+    }
+
+    #[test]
+    fn test_pad_various_lengths_roundtrip() {
+        for len in 0..40usize {
+            let message: Vec<u8> = (0..len).map(|i| i as u8).collect();
+            let padded = pad(&message, 16).unwrap();
+            assert!(padded.len() > message.len());
+            assert_eq!(padded.len() % 16, 0);
+            assert_eq!(unpad(&padded, 16).unwrap(), message);
+        }
+    }
+
+    #[test]
+    fn test_unpad_rejects_invalid_padding() {
+        // A buffer that does not end with a valid padding marker is rejected.
+        let invalid = [0u8; 16];
+        assert_eq!(unpad(&invalid, 16), Err(crate::SodiumError::InvalidPadding));
+    }
+
+    #[test]
+    fn test_zero_blocksize_is_rejected() {
+        assert_eq!(pad(b"data", 0), Err(crate::SodiumError::InvalidPadding));
+        assert_eq!(unpad(b"data", 0), Err(crate::SodiumError::InvalidPadding));
+    }
+}
