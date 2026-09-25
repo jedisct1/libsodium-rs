@@ -3,13 +3,13 @@ name = "libsodium-rs"
 version = "0.2.4"
 edition = "2021"
 authors = ["Frank Denis <github@pureftpd.org>"]
-description = "A comprehensive, idiomatic Rust wrapper for libsodium, providing a safe and ergonomic API for cryptographic operations"
+description = "Rust bindings to libsodium for authenticated encryption, signatures, password hashing, key exchange, and streaming encryption"
 license = "MIT"
 repository = "https://github.com/jedisct1/libsodium-rs"
 documentation = "https://docs.rs/libsodium-rs"
 homepage = "https://github.com/jedisct1/libsodium-rs"
 readme = "README.md"
-keywords = ["crypto", "sodium", "libsodium", "encryption", "cryptography"]
+keywords = ["libsodium", "sodium", "encryption", "cryptography", "bindings"]
 categories = ["cryptography", "external-ffi-bindings", "api-bindings"]
 include = [
     "src/**/*",
