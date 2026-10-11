@@ -909,14 +909,9 @@ pub mod hkdf {
         impl State {
             /// Create a new state for incremental HKDF-SHA-256 extraction
             pub fn new() -> Self {
-                let state = unsafe {
-                    let layout = std::alloc::Layout::from_size_align(statebytes(), 8)
-                        .expect("Invalid layout for crypto_kdf_hkdf_sha256_state");
-                    let ptr = std::alloc::alloc_zeroed(layout)
-                        as *mut libsodium_sys::crypto_kdf_hkdf_sha256_state;
-                    Box::from_raw(ptr)
-                };
-                Self { state }
+                Self {
+                    state: Box::new(unsafe { std::mem::zeroed() }),
+                }
             }
 
             /// Initialize the state with the salt
@@ -1000,20 +995,6 @@ pub mod hkdf {
                 }
 
                 Ok(Prk(prk))
-            }
-        }
-
-        impl Drop for State {
-            fn drop(&mut self) {
-                unsafe {
-                    let ptr = Box::into_raw(std::mem::replace(
-                        &mut self.state,
-                        Box::new(std::mem::zeroed()),
-                    ));
-                    let layout = std::alloc::Layout::from_size_align(statebytes(), 8)
-                        .expect("Invalid layout for crypto_kdf_hkdf_sha256_state");
-                    std::alloc::dealloc(ptr as *mut u8, layout);
-                }
             }
         }
 
@@ -1269,14 +1250,9 @@ pub mod hkdf {
         impl State {
             /// Create a new state for incremental HKDF-SHA-512 extraction
             pub fn new() -> Self {
-                let state = unsafe {
-                    let layout = std::alloc::Layout::from_size_align(statebytes(), 8)
-                        .expect("Invalid layout for crypto_kdf_hkdf_sha512_state");
-                    let ptr = std::alloc::alloc_zeroed(layout)
-                        as *mut libsodium_sys::crypto_kdf_hkdf_sha512_state;
-                    Box::from_raw(ptr)
-                };
-                Self { state }
+                Self {
+                    state: Box::new(unsafe { std::mem::zeroed() }),
+                }
             }
 
             /// Initialize the state with the salt
@@ -1360,20 +1336,6 @@ pub mod hkdf {
                 }
 
                 Ok(Prk(prk))
-            }
-        }
-
-        impl Drop for State {
-            fn drop(&mut self) {
-                unsafe {
-                    let ptr = Box::into_raw(std::mem::replace(
-                        &mut self.state,
-                        Box::new(std::mem::zeroed()),
-                    ));
-                    let layout = std::alloc::Layout::from_size_align(statebytes(), 8)
-                        .expect("Invalid layout for crypto_kdf_hkdf_sha512_state");
-                    std::alloc::dealloc(ptr as *mut u8, layout);
-                }
             }
         }
 
@@ -1523,6 +1485,18 @@ mod tests {
 
         // Both methods should produce the same PRK
         assert_eq!(prk1.as_bytes(), prk2.as_bytes());
+    }
+
+    #[test]
+    fn test_hkdf_state_sizes() {
+        assert_eq!(
+            std::mem::size_of::<libsodium_sys::crypto_kdf_hkdf_sha256_state>(),
+            hkdf::sha256::statebytes()
+        );
+        assert_eq!(
+            std::mem::size_of::<libsodium_sys::crypto_kdf_hkdf_sha512_state>(),
+            hkdf::sha512::statebytes()
+        );
     }
 
     #[test]

@@ -81,14 +81,14 @@ use super::state::State;
 ///
 /// // Compute a 32-byte hash
 /// let data = b"Hello, world!";
-/// let hash = blake2b::hash(data, 32);
+/// let hash = blake2b::hash(data, 32).expect("Failed to compute hash");
 ///
 /// assert_eq!(hash.len(), 32);
 /// ```
-pub fn hash(input: &[u8], output_len: usize) -> Vec<u8> {
-    let mut state = State::new(None, output_len).expect("Invalid parameters for BLAKE2b hash");
+pub fn hash(input: &[u8], output_len: usize) -> Result<Vec<u8>, crate::SodiumError> {
+    let mut state = State::new(None, output_len)?;
     state.update(input);
-    state.finalize()
+    Ok(state.finalize())
 }
 
 /// Computes a BLAKE2b hash of the input data with a key
@@ -146,18 +146,22 @@ pub fn hash(input: &[u8], output_len: usize) -> Vec<u8> {
 /// // Simple hashing without a key
 /// let data = b"Hello, world!";
 /// let key2 = b"secret key";
-/// let mac2 = blake2b::hash_with_key(data, key2, 32);
+/// let mac2 = blake2b::hash_with_key(data, key2, 32).expect("Failed to compute MAC");
 /// assert_eq!(mac2.len(), 32);
 ///
 /// // Keyed hashing (MAC)
 /// let key = b"secret key";
-/// let mac = blake2b::hash_with_key(data, key, 32);
+/// let mac = blake2b::hash_with_key(data, key, 32).expect("Failed to compute MAC");
 /// assert_eq!(mac.len(), 32);
 /// ```
-pub fn hash_with_key(input: &[u8], key: &[u8], output_len: usize) -> Vec<u8> {
-    let mut state = State::new(Some(key), output_len).expect("Invalid parameters for BLAKE2b hash");
+pub fn hash_with_key(
+    input: &[u8],
+    key: &[u8],
+    output_len: usize,
+) -> Result<Vec<u8>, crate::SodiumError> {
+    let mut state = State::new(Some(key), output_len)?;
     state.update(input);
-    state.finalize()
+    Ok(state.finalize())
 }
 
 /// Computes a BLAKE2b hash with salt and personalization

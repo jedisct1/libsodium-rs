@@ -25,7 +25,7 @@
 //! let hash = blake2b::hash(
 //!     data,
 //!     blake2b::BYTES,                 // Default output length (32 bytes)
-//! );
+//! ).expect("Failed to compute hash");
 //!
 //! // Convert to hex for display
 //! let mut encoded = vec![0u8; hash.len() * 2];

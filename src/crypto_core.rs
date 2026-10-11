@@ -2265,7 +2265,7 @@ pub mod keccak1600 {
         /// Panics if `offset + bytes.len() > 200`
         pub fn xor_bytes(&mut self, bytes: &[u8], offset: usize) {
             assert!(
-                offset + bytes.len() <= 200,
+                offset <= 200 && bytes.len() <= 200 - offset,
                 "offset + length must be <= 200"
             );
             unsafe {
@@ -2292,7 +2292,7 @@ pub mod keccak1600 {
         /// Panics if `offset + bytes.len() > 200`
         pub fn extract_bytes(&self, bytes: &mut [u8], offset: usize) {
             assert!(
-                offset + bytes.len() <= 200,
+                offset <= 200 && bytes.len() <= 200 - offset,
                 "offset + length must be <= 200"
             );
             unsafe {
@@ -2846,5 +2846,21 @@ mod tests {
         let state = keccak1600::State::new();
         let mut data = [0u8; 10];
         state.extract_bytes(&mut data, 195); // 195 + 10 > 200
+    }
+
+    #[test]
+    #[should_panic(expected = "offset + length must be <= 200")]
+    fn test_keccak1600_xor_offset_wraparound() {
+        let mut state = keccak1600::State::new();
+        let data = [0u8; 10];
+        state.xor_bytes(&data, usize::MAX - 5);
+    }
+
+    #[test]
+    #[should_panic(expected = "offset + length must be <= 200")]
+    fn test_keccak1600_extract_offset_wraparound() {
+        let state = keccak1600::State::new();
+        let mut data = [0u8; 10];
+        state.extract_bytes(&mut data, usize::MAX - 5);
     }
 }

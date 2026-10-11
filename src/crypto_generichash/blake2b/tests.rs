@@ -8,7 +8,7 @@ use ct_codecs::{Encoder, Hex};
 #[test]
 fn test_hash() {
     let data = b"test data";
-    let hash = hash(data, BYTES);
+    let hash = hash(data, BYTES).unwrap();
 
     // Convert hash to hex string for comparison
     let mut encoded = vec![0u8; hash.len() * 2]; // Hex encoding doubles the length
@@ -25,7 +25,7 @@ fn test_hash() {
 fn test_hash_with_key() {
     let data = b"test data";
     let key = vec![0u8; KEYBYTES]; // Use a properly sized key
-    let hash = hash_with_key(data, &key, BYTES);
+    let hash = hash_with_key(data, &key, BYTES).unwrap();
 
     // Convert hash to hex string for comparison
     let mut encoded = vec![0u8; hash.len() * 2]; // Hex encoding doubles the length
@@ -49,7 +49,7 @@ fn test_hash_with_salt_and_personal() {
         .expect("Failed to compute hash");
 
     // Verify that the hash is different from the one without salt and personalization
-    let result2 = hash_with_key(data, &key, BYTES);
+    let result2 = hash_with_key(data, &key, BYTES).unwrap();
     assert_ne!(result, result2);
 }
 
@@ -71,27 +71,24 @@ fn test_incremental_hash() {
     );
 
     // Compare with one-shot hash
-    let one_shot_hash = hash(b"test data", BYTES);
+    let one_shot_hash = hash(b"test data", BYTES).unwrap();
     assert_eq!(result, one_shot_hash);
 }
 
 #[test]
-#[should_panic(expected = "Invalid parameters for BLAKE2b hash")]
 fn test_invalid_output_length_max() {
-    hash(b"test", BYTES_MAX + 1);
+    assert!(hash(b"test", BYTES_MAX + 1).is_err());
 }
 
 #[test]
-#[should_panic(expected = "Invalid parameters for BLAKE2b hash")]
 fn test_invalid_output_length_min() {
-    hash(b"test", BYTES_MIN - 1);
+    assert!(hash(b"test", BYTES_MIN - 1).is_err());
 }
 
 #[test]
-#[should_panic(expected = "Invalid parameters for BLAKE2b hash")]
 fn test_invalid_key_length() {
     let long_key = vec![0u8; KEYBYTES_MAX + 1];
-    hash_with_key(b"test", &long_key, BYTES);
+    assert!(hash_with_key(b"test", &long_key, BYTES).is_err());
 }
 
 #[test]

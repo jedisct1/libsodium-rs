@@ -216,8 +216,8 @@ fn main() {
 
     // IMPORTANT: Always hash the shared secret before using it as a key
     // Use a cryptographically secure hash function like BLAKE2b
-    let alice_key = blake2b::hash(32, &alice_shared, None, None).unwrap();
-    let bob_key = blake2b::hash(32, &bob_shared, None, None).unwrap();
+    let alice_key = blake2b::hash(&alice_shared, 32).unwrap();
+    let bob_key = blake2b::hash(&bob_shared, 32).unwrap();
 
     assert_eq!(alice_key, bob_key);
 }
