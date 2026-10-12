@@ -46,7 +46,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libsodium-rs = "0.2"
+libsodium-rs = "0"
 ```
 
 This crate requires libsodium to be installed on your system. Installation instructions for various platforms:
@@ -76,6 +76,24 @@ Install libsodium using [vcpkg](https://github.com/microsoft/vcpkg):
 
 ```bash
 vcpkg install libsodium:x64-windows-static
+```
+
+### Cargo Features
+
+None of these are on by default.
+
+- `fetch-latest`: download the latest stable libsodium release when building, instead of using the copy that ships with `libsodium-sys-stable`.
+- `optimized`: tune libsodium for the CPU you're building on.
+  It's usually faster, but the binary may not run on other machines.
+- `wasmer`: on WASI targets, use the WebAssembly wide-arithmetic extension.
+  On Wasmer, Poly1305 gets about 3 times faster, and Ed25519 and X25519 up to 4 times faster.
+  Wasmer and Wasmtime support it out of the box, but other runtimes won't be able to load the module.
+
+For example:
+
+```toml
+[dependencies]
+libsodium-rs = { version = "0", features = ["optimized"] }
 ```
 
 ## Usage Examples
