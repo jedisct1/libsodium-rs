@@ -20,8 +20,8 @@ include = [
 rust-version = "1.88.0"
 
 [dependencies]
-libsodium-sys-stable = "1.24.0"
-thiserror = "1.0"
+libsodium-sys-stable = "1.24.2"
+thiserror = "2.0"
 ctor = "1.0"
 libc = "0.2"
 ct-codecs = "1.1.8"
@@ -44,7 +44,7 @@ all-features = false
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dev-dependencies]
-benchmark-simple = "0.1.11"
+benchmark-simple = "0.2.0"
 
 [[bench]]
 name = "crypto_benchmarks"
