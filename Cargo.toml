@@ -1,6 +1,6 @@
 [package]
 name = "libsodium-rs"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 authors = ["Frank Denis <github@pureftpd.org>"]
 description = "Rust bindings to libsodium for authenticated encryption, signatures, password hashing, key exchange, and streaming encryption"
