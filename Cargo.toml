@@ -38,6 +38,9 @@ fetch-latest = ["libsodium-sys-stable/fetch-latest"]
 optimized = ["libsodium-sys-stable/optimized"]
 # Do not build deprecated APIs
 minimal = ["libsodium-sys-stable/minimal"]
+# On wasmer-like targets, build libsodium with the WebAssembly wide-arithmetic extension for better performance.
+# But note that runtimes that don't support it will refuse to load the module.
+wasmer = ["libsodium-sys-stable/wasmer"]
 
 [package.metadata.docs.rs]
 all-features = false
