@@ -20,7 +20,7 @@ include = [
 rust-version = "1.88.0"
 
 [dependencies]
-libsodium-sys-stable = "1.24.2"
+libsodium-sys-stable = "1.24.3"
 thiserror = "2.0"
 ctor = "1.0"
 libc = "0.2"
