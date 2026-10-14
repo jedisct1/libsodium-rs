@@ -1257,6 +1257,12 @@ pub fn open_detached(
     pk: &PublicKey,
     sk: &SecretKey,
 ) -> Result<Vec<u8>> {
+    if mac.len() != MACBYTES {
+        return Err(SodiumError::InvalidInput(format!(
+            "authentication tag must be exactly {MACBYTES} bytes"
+        )));
+    }
+
     let mut message = vec![0u8; ciphertext.len()];
 
     let result = unsafe {
@@ -1348,6 +1354,12 @@ pub fn open_detached_afternm(
     nonce: &Nonce,
     precomputed_key: &PrecomputedKey,
 ) -> Result<Vec<u8>> {
+    if mac.len() != MACBYTES {
+        return Err(SodiumError::InvalidInput(format!(
+            "authentication tag must be exactly {MACBYTES} bytes"
+        )));
+    }
+
     let mut message = vec![0u8; ciphertext.len()];
 
     let result = unsafe {
@@ -1798,6 +1810,38 @@ mod tests {
         let decrypted = open_detached_afternm(&ciphertext, &mac, &nonce, &bob_precomputed).unwrap();
 
         assert_eq!(decrypted, message);
+    }
+
+    #[test]
+    fn test_open_detached_mac_lengths() {
+        let alice = KeyPair::generate();
+        let bob = KeyPair::generate();
+        let nonce = Nonce::generate();
+        let message = b"Detached tags must have exactly MACBYTES bytes";
+        let (ciphertext, mac) =
+            seal_detached(message, &nonce, &bob.public_key, &alice.secret_key).unwrap();
+        let precomputed = beforenm(&alice.public_key, &bob.secret_key).unwrap();
+        let mut tag_buffer = vec![0u8; 1024];
+        tag_buffer[..MACBYTES].copy_from_slice(&mac);
+
+        for len in (0..=MACBYTES * 2).chain(std::iter::once(tag_buffer.len())) {
+            for result in [
+                open_detached(
+                    &ciphertext,
+                    &tag_buffer[..len],
+                    &nonce,
+                    &alice.public_key,
+                    &bob.secret_key,
+                ),
+                open_detached_afternm(&ciphertext, &tag_buffer[..len], &nonce, &precomputed),
+            ] {
+                if len == MACBYTES {
+                    assert_eq!(result.unwrap(), message);
+                } else {
+                    assert!(matches!(result, Err(SodiumError::InvalidInput(_))));
+                }
+            }
+        }
     }
 
     #[test]

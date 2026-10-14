@@ -143,9 +143,10 @@ pub fn pwhash_str(password: &[u8], opslimit: u64, memlimit: usize) -> Result<Str
 pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> Result<bool> {
     validate_password_len(password.len())?;
 
+    let c_hash = super::hash_cstring(hash_str)?;
     let result = unsafe {
         libsodium_sys::crypto_pwhash_scryptsalsa208sha256_str_verify(
-            hash_str.as_ptr() as *const std::os::raw::c_char,
+            c_hash.as_ptr(),
             password.as_ptr() as *const std::os::raw::c_char,
             password.len() as u64,
         )
@@ -156,9 +157,10 @@ pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> Result<bool> {
 
 /// Checks if a password hash needs to be rehashed using scrypt
 pub fn pwhash_str_needs_rehash(hash_str: &str, opslimit: u64, memlimit: usize) -> Result<bool> {
+    let c_hash = super::hash_cstring(hash_str)?;
     let result = unsafe {
         libsodium_sys::crypto_pwhash_scryptsalsa208sha256_str_needs_rehash(
-            hash_str.as_ptr() as *const std::os::raw::c_char,
+            c_hash.as_ptr(),
             opslimit,
             memlimit as libc::size_t,
         )
@@ -218,6 +220,26 @@ pub fn pwhash_ll(
 mod tests {
     use super::*;
     use crate::random;
+
+    #[test]
+    fn test_hash_string_bounds() {
+        let password = b"audit";
+        let hash = pwhash_str(password, OPSLIMIT_MIN, MEMLIMIT_MIN).unwrap();
+        let backing = format!("{hash}\0suffix");
+        let valid = &backing[..hash.len()];
+        let empty = &backing[..0];
+
+        assert_eq!(pwhash_str_verify(valid, password), Ok(true));
+        assert_eq!(pwhash_str_verify(empty, password), Ok(false));
+        assert!(pwhash_str_verify(&backing, password).is_err());
+
+        assert_eq!(
+            pwhash_str_needs_rehash(valid, OPSLIMIT_MIN, MEMLIMIT_MIN),
+            Ok(false)
+        );
+        assert!(pwhash_str_needs_rehash(empty, OPSLIMIT_MIN, MEMLIMIT_MIN).is_err());
+        assert!(pwhash_str_needs_rehash(&backing, OPSLIMIT_MIN, MEMLIMIT_MIN).is_err());
+    }
 
     #[test]
     fn test_max_constants_match_libsodium() {

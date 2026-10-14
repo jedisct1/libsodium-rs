@@ -1,19 +1,10 @@
-//! Core constants and definitions for BLAKE2b
+//! BLAKE2b output, key, salt, and personalization sizes.
 //!
-//! This module defines the constants used by the BLAKE2b hash function implementation.
-//! BLAKE2b is a cryptographic hash function optimized for 64-bit platforms that
-//! produces hash values of any size between 1 and 64 bytes.
-//!
-//! These constants define the valid ranges for hash output sizes, key sizes, and the
-//! sizes of salt and personalization parameters. They are derived directly from the
-//! underlying libsodium library.
+//! This API accepts hash outputs from 16 to 64 bytes.
 
-/// Minimum number of bytes in a hash output (1)
+/// Minimum accepted hash output length in bytes (16).
 ///
-/// This is the minimum length of a hash that can be produced by the BLAKE2b hash function.
-/// While BLAKE2b technically supports outputs as small as 1 byte, shorter outputs provide
-/// less security against collisions and preimage attacks. For most applications, using
-/// at least 32 bytes (256 bits) is recommended.
+/// For most applications, use at least 32 bytes (256 bits).
 pub const BYTES_MIN: usize = libsodium_sys::crypto_generichash_blake2b_BYTES_MIN as usize;
 
 /// Maximum number of bytes in a hash output (64)
@@ -40,12 +31,11 @@ pub const BYTES_MAX: usize = libsodium_sys::crypto_generichash_blake2b_BYTES_MAX
 ///   output size of 64 bytes
 pub const BYTES: usize = libsodium_sys::crypto_generichash_blake2b_BYTES as usize;
 
-/// Minimum number of bytes in a key (0)
+/// Recommended minimum key length in bytes (16).
 ///
-/// This is the minimum length of a key that can be used for keyed hashing. A key length
-/// of 0 effectively means no key is used, resulting in the standard unkeyed hash function.
-/// For keyed hashing (MAC functionality), using a key of at least 16-32 bytes is recommended
-/// to provide adequate security.
+/// Keys from 0 to `KEYBYTES_MAX` (64) bytes are accepted.
+/// An empty key gives an unkeyed hash.
+/// The default recommended key length is `KEYBYTES` (32) bytes.
 pub const KEYBYTES_MIN: usize = libsodium_sys::crypto_generichash_blake2b_KEYBYTES_MIN as usize;
 
 /// Maximum number of bytes in a key (64)

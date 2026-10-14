@@ -93,6 +93,22 @@ pub const TAG_PUSH: u8 = libsodium_sys::crypto_secretstream_xchacha20poly1305_TA
 /// and derive a new secret key for subsequent messages.
 pub const TAG_REKEY: u8 = libsodium_sys::crypto_secretstream_xchacha20poly1305_TAG_REKEY as u8;
 
+fn validate_message_len(message_len: usize) -> Result<()> {
+    let max = unsafe { libsodium_sys::crypto_secretstream_xchacha20poly1305_messagebytes_max() };
+    if message_len > max {
+        return Err(SodiumError::InvalidInput("message too large".into()));
+    }
+    Ok(())
+}
+
+fn message_len_from_ciphertext_len(ciphertext_len: usize) -> Result<usize> {
+    let message_len = ciphertext_len
+        .checked_sub(ABYTES)
+        .ok_or_else(|| SodiumError::InvalidInput("ciphertext too short".into()))?;
+    validate_message_len(message_len)?;
+    Ok(message_len)
+}
+
 /// A secret key for XChaCha20-Poly1305 secretstream
 ///
 /// This key is used to initialize the encryption and decryption states.
@@ -202,6 +218,7 @@ impl From<Key> for [u8; KEYBYTES] {
 /// State for XChaCha20-Poly1305 secretstream encryption/decryption
 pub struct State {
     state: Box<libsodium_sys::crypto_secretstream_xchacha20poly1305_state>,
+    finalized: bool,
 }
 
 impl Drop for State {
@@ -221,6 +238,7 @@ impl State {
     fn new() -> Self {
         State {
             state: Box::new(unsafe { std::mem::zeroed() }),
+            finalized: false,
         }
     }
 }
@@ -423,10 +441,18 @@ impl PushState {
     /// ## Errors
     ///
     /// Returns an error if:
+    /// - The message exceeds libsodium's maximum message length
     /// - The encryption operation fails
     /// - An invalid tag is provided
     /// - The state has already been finalized with `TAG_FINAL`
     pub fn push(&mut self, m: &[u8], ad: Option<&[u8]>, tag: u8) -> Result<Vec<u8>> {
+        if self.0.finalized {
+            return Err(SodiumError::InvalidInput("stream already finalized".into()));
+        }
+        if !matches!(tag, TAG_MESSAGE | TAG_PUSH | TAG_REKEY | TAG_FINAL) {
+            return Err(SodiumError::InvalidInput("invalid message tag".into()));
+        }
+        validate_message_len(m.len())?;
         let c_len = m.len() + ABYTES;
         let mut c = vec![0u8; c_len];
         let mut c_len: u64 = 0;
@@ -448,6 +474,9 @@ impl PushState {
             }
         }
 
+        if tag == TAG_FINAL {
+            self.0.finalized = true;
+        }
         c.truncate(c_len as usize);
         Ok(c)
     }
@@ -482,6 +511,7 @@ impl PushState {
     /// - Alternatively, use the `TAG_REKEY` tag when pushing a message to automatically rekey
     /// - For long-running streams, consider using periodic rekeying (every N messages or bytes)
     /// - Rekeying is automatically performed when a message with `TAG_FINAL` is pushed
+    /// - Explicit rekeying does not reopen a finalized stream
     ///
     /// ## Example
     /// ```
@@ -561,49 +591,15 @@ impl PushState {
 pub struct PullState(State);
 
 impl PullState {
-    /// Initialize a new decryption state
+    /// Initialize a decryption state with the sender's header and secret key.
     ///
-    /// This function initializes a state for decrypting a stream of messages.
-    /// It requires the header that was generated during encryption initialization
-    /// and the same secret key that was used for encryption.
+    /// Store or transmit the header alongside the encrypted messages.
+    /// It is not secret, but it must reach the receiver unchanged.
     ///
-    /// ## Initialization Process
-    ///
-    /// The initialization process follows these steps:
-    /// 1. Validates the header format and size (must be exactly HEADERBYTES)
-    /// 2. Derives an initial state from the provided key and header
-    /// 3. Sets up internal counters and authentication state to match the encryption state
-    /// 4. Prepares the state for decrypting messages in the exact order they were encrypted
-    /// 5. Establishes the cryptographic context for verifying message authenticity
-    ///
-    /// ## Header Information
-    ///
-    /// The header (24 bytes) contains critical information about the encryption stream, including:
-    /// - A unique nonce used for the stream (prevents replay attacks)
-    /// - Key derivation parameters (ensures unique subkeys for each message)
-    /// - Initial counter values (maintains synchronization between encryption and decryption)
-    /// - Stream identifier (uniquely identifies this particular encryption stream)
-    ///
-    /// ## Header Handling
-    ///
-    /// The header is a small piece of data (24 bytes) that must be stored or transmitted
-    /// along with the encrypted messages. It has the following properties:
-    ///
-    /// - **Not secret**: The header doesn't need to be kept confidential
-    /// - **Integrity critical**: The header must be protected from modification
-    /// - **Stream identifier**: Each header uniquely identifies a specific encryption stream
-    /// - **Required for decryption**: Without the exact header, decryption is impossible
-    /// - **Replay protection**: The header prevents replay attacks across different streams
-    ///
-    /// ## Security Considerations
-    ///
-    /// - The header must be exactly as it was generated during encryption
-    /// - Any tampering with the header will cause all decryption operations to fail
-    /// - The same key used for encryption must be used for decryption
-    /// - The header is not secret but must be transmitted intact
-    /// - Each header is unique, even when using the same key multiple times
-    /// - Headers should be stored or transmitted with integrity protection
-    /// - The header size is always exactly HEADERBYTES (24 bytes)
+    /// Initialization does not authenticate the header or key.
+    /// A corrupted header or wrong key is detected when [`Self::pull`]
+    /// authenticates the first ciphertext.
+    /// Decrypt messages in the same order they were encrypted.
     ///
     /// ## Example
     /// ```rust
@@ -638,9 +634,7 @@ impl PullState {
     ///
     /// ## Errors
     ///
-    /// Returns an error if:
-    /// - The header is invalid or corrupted
-    /// - The initialization fails (extremely rare with proper libsodium initialization)
+    /// Returns an error if libsodium cannot initialize the state.
     pub fn init_pull(header: &[u8; HEADERBYTES], key: &Key) -> Result<PullState> {
         let mut state = State::new();
 
@@ -776,16 +770,17 @@ impl PullState {
     /// ## Errors
     ///
     /// Returns an error if:
+    /// - The ciphertext is shorter than `ABYTES`
+    /// - The message exceeds libsodium's maximum message length
     /// - The ciphertext has been tampered with
     /// - The additional data doesn't match what was used during encryption
     /// - The messages are not decrypted in the same order they were encrypted
     /// - The state has already been finalized with a message tagged with `TAG_FINAL`
     pub fn pull(&mut self, c: &[u8], ad: Option<&[u8]>) -> Result<(Vec<u8>, u8)> {
-        if c.len() < ABYTES {
-            return Err(SodiumError::InvalidInput("ciphertext too short".into()));
+        if self.0.finalized {
+            return Err(SodiumError::InvalidInput("stream already finalized".into()));
         }
-
-        let m_len = c.len() - ABYTES;
+        let m_len = message_len_from_ciphertext_len(c.len())?;
         let mut m = vec![0u8; m_len];
         let mut m_len_out: u64 = 0;
         let mut tag: u8 = 0;
@@ -807,6 +802,9 @@ impl PullState {
             }
         }
 
+        if tag == TAG_FINAL {
+            self.0.finalized = true;
+        }
         m.truncate(m_len_out as usize);
         Ok((m, tag))
     }
@@ -842,6 +840,7 @@ impl PullState {
     /// - It's usually better to rely on the `TAG_REKEY` tag, which is automatically handled by the `pull()` function
     /// - For long-running streams, consider using periodic rekeying (every N messages or bytes)
     /// - Rekeying is automatically performed when a message with `TAG_FINAL` is received
+    /// - Explicit rekeying does not reopen a finalized stream
     ///
     /// # Example
     /// ```
@@ -890,6 +889,152 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_message_length_boundaries() {
+        let max =
+            unsafe { libsodium_sys::crypto_secretstream_xchacha20poly1305_messagebytes_max() };
+        for len in [0, 1, max - 1, max] {
+            assert!(validate_message_len(len).is_ok());
+        }
+        for len in [max.checked_add(1).unwrap(), usize::MAX] {
+            assert!(matches!(
+                validate_message_len(len),
+                Err(SodiumError::InvalidInput(_))
+            ));
+        }
+
+        for len in [0, ABYTES - 1] {
+            assert!(matches!(
+                message_len_from_ciphertext_len(len),
+                Err(SodiumError::InvalidInput(_))
+            ));
+        }
+        assert_eq!(message_len_from_ciphertext_len(ABYTES).unwrap(), 0);
+        assert_eq!(message_len_from_ciphertext_len(ABYTES + 1).unwrap(), 1);
+        let max_ciphertext = max.checked_add(ABYTES).unwrap();
+        assert_eq!(
+            message_len_from_ciphertext_len(max_ciphertext - 1).unwrap(),
+            max - 1
+        );
+        assert_eq!(
+            message_len_from_ciphertext_len(max_ciphertext).unwrap(),
+            max
+        );
+        if let Some(oversized) = max_ciphertext.checked_add(1) {
+            for len in [oversized, usize::MAX] {
+                assert!(matches!(
+                    message_len_from_ciphertext_len(len),
+                    Err(SodiumError::InvalidInput(_))
+                ));
+            }
+        }
+    }
+
+    fn stream_pair() -> (PushState, PullState) {
+        let key = Key::generate();
+        let (push, header) = PushState::init_push(&key).unwrap();
+        let pull = PullState::init_pull(&header, &key).unwrap();
+        (push, pull)
+    }
+
+    #[test]
+    fn test_finalization_survives_rekey() {
+        let (mut push, mut pull) = stream_pair();
+        let ciphertext = push.push(b"last", None, TAG_FINAL).unwrap();
+        let (message, tag) = pull.pull(&ciphertext, None).unwrap();
+        assert_eq!(message, b"last");
+        assert_eq!(tag, TAG_FINAL);
+
+        for rekey in [false, true] {
+            if rekey {
+                push.rekey().unwrap();
+                pull.rekey().unwrap();
+            }
+            for tag in [TAG_MESSAGE, TAG_PUSH, TAG_REKEY, TAG_FINAL] {
+                assert!(matches!(
+                    push.push(b"after final", None, tag),
+                    Err(SodiumError::InvalidInput(_))
+                ));
+            }
+            assert!(matches!(
+                pull.pull(&ciphertext, None),
+                Err(SodiumError::InvalidInput(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn test_invalid_tags_do_not_advance_state() {
+        let (mut push, mut pull) = stream_pair();
+        for tag in 0..=u8::MAX {
+            if matches!(tag, TAG_MESSAGE | TAG_PUSH | TAG_REKEY | TAG_FINAL) {
+                continue;
+            }
+            assert!(matches!(
+                push.push(b"invalid", None, tag),
+                Err(SodiumError::InvalidInput(_))
+            ));
+        }
+        let ciphertext = push.push(b"valid", None, TAG_MESSAGE).unwrap();
+        let (message, tag) = pull.pull(&ciphertext, None).unwrap();
+        assert_eq!(message, b"valid");
+        assert_eq!(tag, TAG_MESSAGE);
+    }
+
+    #[test]
+    fn test_failed_final_authentication_does_not_finalize() {
+        let (mut push, mut pull) = stream_pair();
+        let ciphertext = push.push(b"last", Some(b"context"), TAG_FINAL).unwrap();
+        let mut tampered = ciphertext.clone();
+        tampered[0] ^= 1;
+        assert!(matches!(
+            pull.pull(&tampered, Some(b"context")),
+            Err(SodiumError::OperationError(_))
+        ));
+        assert!(matches!(
+            pull.pull(&ciphertext, Some(b"wrong context")),
+            Err(SodiumError::OperationError(_))
+        ));
+        assert!(matches!(
+            pull.pull(&ciphertext[..ABYTES - 1], Some(b"context")),
+            Err(SodiumError::InvalidInput(_))
+        ));
+
+        let (message, tag) = pull.pull(&ciphertext, Some(b"context")).unwrap();
+        assert_eq!(message, b"last");
+        assert_eq!(tag, TAG_FINAL);
+        assert!(matches!(
+            pull.pull(&ciphertext, Some(b"context")),
+            Err(SodiumError::InvalidInput(_))
+        ));
+    }
+
+    #[test]
+    fn test_header_and_key_authenticated_by_pull() {
+        let key = Key::from([0x42; KEYBYTES]);
+        let (mut push, header) = PushState::init_push(&key).unwrap();
+        let ciphertext = push.push(b"message", None, TAG_MESSAGE).unwrap();
+        for index in 0..HEADERBYTES {
+            let mut corrupted = header;
+            corrupted[index] ^= 1;
+            let mut pull = PullState::init_pull(&corrupted, &key).unwrap();
+            assert!(matches!(
+                pull.pull(&ciphertext, None),
+                Err(SodiumError::OperationError(_))
+            ));
+        }
+        let wrong_key = Key::from([0x43; KEYBYTES]);
+        let mut pull = PullState::init_pull(&header, &wrong_key).unwrap();
+        assert!(matches!(
+            pull.pull(&ciphertext, None),
+            Err(SodiumError::OperationError(_))
+        ));
+        let mut pull = PullState::init_pull(&header, &key).unwrap();
+        let (message, tag) = pull.pull(&ciphertext, None).unwrap();
+        assert_eq!(message, b"message");
+        assert_eq!(tag, TAG_MESSAGE);
+    }
+
+    #[test]
     fn test_secretstream() {
         let key = Key::generate();
         let message1 = b"Hello, ";
@@ -903,6 +1048,8 @@ mod tests {
         // Encrypt the messages
         let ciphertext1 = push_state.push(message1, Some(ad), TAG_MESSAGE).unwrap();
         let ciphertext2 = push_state.push(message2, Some(ad), TAG_MESSAGE).unwrap();
+        let ciphertext_rekey = push_state.push(b"", Some(b""), TAG_REKEY).unwrap();
+        assert_eq!(ciphertext_rekey.len(), ABYTES);
         let ciphertext3 = push_state.push(message3, Some(ad), TAG_FINAL).unwrap();
 
         // Initialize the decryption
@@ -911,16 +1058,19 @@ mod tests {
         // Decrypt the messages
         let (decrypted1, tag1) = pull_state.pull(&ciphertext1, Some(ad)).unwrap();
         let (decrypted2, tag2) = pull_state.pull(&ciphertext2, Some(ad)).unwrap();
+        let (empty_message, rekey_tag) = pull_state.pull(&ciphertext_rekey, Some(b"")).unwrap();
         let (decrypted3, tag3) = pull_state.pull(&ciphertext3, Some(ad)).unwrap();
 
         // Verify the decrypted messages
         assert_eq!(&decrypted1, message1);
         assert_eq!(&decrypted2, message2);
+        assert!(empty_message.is_empty());
         assert_eq!(&decrypted3, message3);
 
         // Verify the tags
         assert_eq!(tag1, TAG_MESSAGE);
         assert_eq!(tag2, TAG_MESSAGE);
+        assert_eq!(rekey_tag, TAG_REKEY);
         assert_eq!(tag3, TAG_FINAL);
     }
 

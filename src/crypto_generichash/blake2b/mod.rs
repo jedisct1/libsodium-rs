@@ -4,8 +4,10 @@
 //!
 //! ## Features
 //!
-//! - **Variable output length**: Can produce hashes of any size between `BYTES_MIN` (16) and `BYTES_MAX` (64) bytes
-//! - **Keyed hashing**: Supports keyed hashing (MAC) with keys of variable length
+//! - **Output length**: Accepts hash outputs from 16 to 64 bytes.
+//! - **Keyed hashing**: Accepts keys from 0 to 64 bytes.
+//!   An empty key gives an unkeyed hash.
+//!   Use at least `KEYBYTES_MIN` (16) bytes for keyed hashing.
 //! - **High performance**: Optimized for modern CPUs, faster than SHA-2 and SHA-3
 //! - **Incremental hashing**: Supports incremental hashing for processing large data streams
 //!

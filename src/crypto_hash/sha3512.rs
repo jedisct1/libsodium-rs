@@ -56,7 +56,7 @@ impl Default for State {
 impl State {
     /// Creates a new SHA3-512 hashing state.
     pub fn new() -> Self {
-        let mut state = std::mem::MaybeUninit::uninit();
+        let mut state = std::mem::MaybeUninit::zeroed();
         let state_ptr = state.as_mut_ptr();
 
         unsafe {
@@ -143,6 +143,63 @@ mod tests {
             "bb9e2a02237e6f8adcaef9fc14b898b7c80cedc114110472cdf925233621b705963c76e7b113bed3c278ff11671a6d1cdcba545e009ff4c0c02539899241993b"
         );
         assert_eq!(result, crate::crypto_hash::hash_sha3512(b"test data"));
+    }
+
+    #[test]
+    fn test_empty_hash() {
+        let result = hash(b"");
+        let mut encoded = [0; BYTES * 2];
+        let encoded = Hex::encode(&mut encoded, result).unwrap();
+        assert_eq!(
+            std::str::from_utf8(encoded).unwrap(),
+            "a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26"
+        );
+        assert_eq!(State::new().finalize(), result);
+        let mut state = State::new();
+        state.update(b"");
+        assert_eq!(state.finalize(), result);
+    }
+
+    #[test]
+    fn test_chunked_block_boundaries() {
+        for len in [1, 71, 72, 73, 143, 144, 145, 1024] {
+            let input: Vec<u8> = (0..len).map(|i| i as u8).collect();
+            let mut expected = [0; BYTES];
+            assert_eq!(
+                unsafe {
+                    libsodium_sys::crypto_hash_sha3512(
+                        expected.as_mut_ptr(),
+                        input.as_ptr(),
+                        input.len() as u64,
+                    )
+                },
+                0
+            );
+            assert_eq!(hash(&input), expected, "input length {len}");
+            for chunk_len in [1, 7, 71, 72, 73] {
+                let mut state = State::new();
+                state.update(b"");
+                for chunk in input.chunks(chunk_len) {
+                    state.update(chunk);
+                    state.update(b"");
+                }
+                assert_eq!(
+                    state.finalize(),
+                    expected,
+                    "input length {len}, chunk length {chunk_len}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_constructor_initializes_all_fields() {
+        let mut expected = libsodium_sys::crypto_hash_sha3512_state { opaque: [0; 256] };
+        assert_eq!(
+            unsafe { libsodium_sys::crypto_hash_sha3512_init(&mut expected) },
+            0
+        );
+        assert_eq!(State::new().state.opaque, expected.opaque);
     }
 
     #[test]

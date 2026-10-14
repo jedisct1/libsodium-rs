@@ -596,10 +596,9 @@ pub fn primitive() -> &'static str {
 ///
 /// ## Errors
 ///
-/// Returns an error if the key computation fails, which can happen if:
-/// - The public keys are invalid
-/// - The secret key is invalid
-/// - The public keys represent the same identity (client_pk == server_pk)
+/// Returns an error if `server_pk` is a low-order point, which would make the
+/// X25519 shared secret all zeros.
+/// Identical client and server public keys are not detected.
 ///
 /// ## Example
 ///
@@ -690,10 +689,9 @@ pub fn client_session_keys(
 ///
 /// ## Errors
 ///
-/// Returns an error if the key computation fails, which can happen if:
-/// - The public keys are invalid
-/// - The secret key is invalid
-/// - The public keys represent the same identity (server_pk == client_pk)
+/// Returns an error if `client_pk` is a low-order point, which would make the
+/// X25519 shared secret all zeros.
+/// Identical client and server public keys are not detected.
 ///
 /// ## Example
 ///
@@ -821,6 +819,25 @@ mod tests {
 
         let long_bytes = [42u8; PUBLICKEYBYTES + 1];
         assert!(PublicKey::try_from(&long_bytes[..]).is_err());
+    }
+
+    #[test]
+    fn test_session_keys_reject_only_low_order_peers() {
+        let keypair = KeyPair::generate().unwrap();
+        let pk = &keypair.public_key;
+        let sk = &keypair.secret_key;
+        let low_order = PublicKey::from([0u8; PUBLICKEYBYTES]);
+
+        assert!(matches!(
+            client_session_keys(pk, sk, &low_order),
+            Err(SodiumError::OperationError(_))
+        ));
+        assert!(matches!(
+            server_session_keys(pk, sk, &low_order),
+            Err(SodiumError::OperationError(_))
+        ));
+        assert!(client_session_keys(pk, sk, pk).is_ok());
+        assert!(server_session_keys(pk, sk, pk).is_ok());
     }
 
     #[test]

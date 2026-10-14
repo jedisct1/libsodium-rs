@@ -271,17 +271,34 @@ pub fn munlock(buf: &mut [u8]) -> std::io::Result<()> {
     }
 }
 
-/// Increment a number (usually a nonce) stored as big-endian bytes
-pub fn increment_be(n: &mut [u8]) {
+/// Increment a little-endian number in place, wrapping around on overflow.
+///
+/// This is libsodium's `sodium_increment`, usually applied to nonces.
+/// It runs in constant time for a given length.
+///
+/// ## Example
+///
+/// ```rust
+/// use libsodium_rs as sodium;
+/// use sodium::utils;
+///
+/// let mut nonce = [0xff, 0x00, 0x00];
+/// utils::increment_le(&mut nonce);
+/// assert_eq!(nonce, [0x00, 0x01, 0x00]);
+/// ```
+pub fn increment_le(n: &mut [u8]) {
     unsafe {
         libsodium_sys::sodium_increment(n.as_mut_ptr(), n.len());
     }
 }
 
-/// Add two numbers stored as big-endian bytes
+/// Add `b` to `a`, treating both as little-endian numbers.
 ///
-/// This function adds two numbers stored as big-endian byte arrays. The result
-/// is stored in the first array (`a`).
+/// This is libsodium's `sodium_add`, which runs in constant time for a given length.
+/// Only the first `min(a.len(), b.len())` bytes of each operand are used.
+/// The sum wraps around within those bytes: a carry out of them is discarded,
+/// and the rest of `a` is left unchanged.
+/// Use operands of the same length for ordinary modular addition.
 ///
 /// ## Example
 ///
@@ -289,25 +306,24 @@ pub fn increment_be(n: &mut [u8]) {
 /// use libsodium_rs as sodium;
 /// use sodium::utils;
 ///
-/// let mut a = [0x01, 0x02, 0x03, 0x04];
-/// let b = [0x00, 0x01, 0x00, 0x01];
-/// utils::add_be(&mut a, &b);
-/// assert_eq!(a, [0x01, 0x03, 0x03, 0x05]);
+/// let mut a = [0xff, 0x00, 0x00, 0x00];
+/// utils::add_le(&mut a, &[0x01, 0x00, 0x00, 0x00]);
+/// assert_eq!(a, [0x00, 0x01, 0x00, 0x00]);
 /// ```
-///
-/// # Arguments
-/// * `a` - First number as big-endian bytes (will be modified to store the result)
-/// * `b` - Second number as big-endian bytes
-pub fn add_be(a: &mut [u8], b: &[u8]) {
+pub fn add_le(a: &mut [u8], b: &[u8]) {
+    let len = a.len().min(b.len());
     unsafe {
-        libsodium_sys::sodium_add(a.as_mut_ptr(), b.as_ptr(), a.len().min(b.len()));
+        libsodium_sys::sodium_add(a.as_mut_ptr(), b.as_ptr(), len);
     }
 }
 
-/// Subtract one number from another, both stored as big-endian bytes
+/// Subtract `b` from `a`, treating both as little-endian numbers.
 ///
-/// This function subtracts the second number (`b`) from the first number (`a`),
-/// both stored as big-endian byte arrays. The result is stored in the first array (`a`).
+/// This is libsodium's `sodium_sub`, which runs in constant time for a given length.
+/// Only the first `min(a.len(), b.len())` bytes of each operand are used.
+/// The difference wraps around within those bytes: a borrow out of them is discarded,
+/// and the rest of `a` is left unchanged.
+/// Use operands of the same length for ordinary modular subtraction.
 ///
 /// ## Example
 ///
@@ -315,18 +331,14 @@ pub fn add_be(a: &mut [u8], b: &[u8]) {
 /// use libsodium_rs as sodium;
 /// use sodium::utils;
 ///
-/// let mut a = [0x01, 0x03, 0x03, 0x05];
-/// let b = [0x00, 0x01, 0x00, 0x01];
-/// utils::sub_be(&mut a, &b);
-/// assert_eq!(a, [0x01, 0x02, 0x03, 0x04]);
+/// let mut a = [0x00, 0x01, 0x00, 0x00];
+/// utils::sub_le(&mut a, &[0x01, 0x00, 0x00, 0x00]);
+/// assert_eq!(a, [0xff, 0x00, 0x00, 0x00]);
 /// ```
-///
-/// # Arguments
-/// * `a` - First number as big-endian bytes (will be modified to store the result)
-/// * `b` - Second number as big-endian bytes (will be subtracted from `a`)
-pub fn sub_be(a: &mut [u8], b: &[u8]) {
+pub fn sub_le(a: &mut [u8], b: &[u8]) {
+    let len = a.len().min(b.len());
     unsafe {
-        libsodium_sys::sodium_sub(a.as_mut_ptr(), b.as_ptr(), a.len().min(b.len()));
+        libsodium_sys::sodium_sub(a.as_mut_ptr(), b.as_ptr(), len);
     }
 }
 
@@ -358,18 +370,19 @@ pub fn is_zero(n: &[u8]) -> bool {
     unsafe { libsodium_sys::sodium_is_zero(n.as_ptr(), n.len()) == 1 }
 }
 
-/// Compare two byte arrays in lexicographical order
+/// Compare two little-endian numbers in constant time.
 ///
-/// This function compares two byte arrays in lexicographical order. It returns -1 if
-/// the first array is less than the second, 1 if the first array is greater than the
-/// second, and 0 if the arrays are equal. If the shared prefix is equal, the shorter
-/// slice is considered smaller.
+/// This uses libsodium's `sodium_compare` and returns -1, 0 or 1 when `a` is
+/// less than, equal to, or greater than `b`.
+/// The last byte is the most significant one, so this is not lexicographic order.
 ///
-/// ## Security Considerations
+/// Only the first `min(a.len(), b.len())` bytes are compared, and those are the
+/// least significant bytes of each number.
+/// If they are equal, the shorter slice is considered smaller.
+/// Pass slices of the same length to compare them as numbers.
 ///
-/// - This function is constant-time, which is important for security-sensitive applications
-/// - It should be used when comparing sensitive data that requires a lexicographical
-///   comparison rather than just equality testing
+/// Comparing the shared bytes takes constant time for a given length.
+/// The lengths themselves are not treated as secret.
 ///
 /// ## Example
 ///
@@ -377,23 +390,14 @@ pub fn is_zero(n: &[u8]) -> bool {
 /// use libsodium_rs as sodium;
 /// use sodium::utils;
 ///
-/// let a = [0x01, 0x02, 0x03, 0x04];
-/// let b = [0x01, 0x02, 0x03, 0x05];
-/// let c = [0x01, 0x02, 0x03, 0x03];
+/// let a = [0x02, 0x01]; // 0x0102
+/// let b = [0x01, 0x02]; // 0x0201
 ///
-/// assert_eq!(utils::compare(&a, &b), -1); // a < b
-/// assert_eq!(utils::compare(&b, &a), 1);  // b > a
-/// assert_eq!(utils::compare(&a, &a), 0);  // a == a
-/// assert_eq!(utils::compare(&a, &c), 1);  // a > c
+/// assert_eq!(utils::compare_le(&a, &b), -1);
+/// assert_eq!(utils::compare_le(&b, &a), 1);
+/// assert_eq!(utils::compare_le(&a, &a), 0);
 /// ```
-///
-/// # Arguments
-/// * `a` - First byte array to compare
-/// * `b` - Second byte array to compare
-///
-/// # Returns
-/// * `i32` - -1 if a < b, 1 if a > b, 0 if a == b
-pub fn compare(a: &[u8], b: &[u8]) -> i32 {
+pub fn compare_le(a: &[u8], b: &[u8]) -> i32 {
     let min_len = a.len().min(b.len());
     if min_len > 0 {
         let cmp = unsafe { libsodium_sys::sodium_compare(a.as_ptr(), b.as_ptr(), min_len) };
@@ -528,7 +532,8 @@ pub fn hex2bin(hex: &str) -> Result<Vec<u8>> {
 /// * `Result<Vec<u8>>` - The binary data or an error if the string is not valid hexadecimal
 pub fn hex2bin_ignore(hex: &str, ignore: &str) -> Result<Vec<u8>> {
     let hex_bytes = hex.as_bytes();
-    let ignore_bytes = ignore.as_bytes();
+    let ignore_chars =
+        std::ffi::CString::new(ignore).map_err(|_| crate::SodiumError::HexDecodingFailed)?;
     let bin_len = hex_bytes.len().div_ceil(2);
     let mut bin = vec![0u8; bin_len];
     let mut bin_len_ptr = bin_len;
@@ -539,7 +544,7 @@ pub fn hex2bin_ignore(hex: &str, ignore: &str) -> Result<Vec<u8>> {
             bin_len,
             hex_bytes.as_ptr() as *const _,
             hex_bytes.len(),
-            ignore_bytes.as_ptr() as *const _,
+            ignore_chars.as_ptr(),
             &mut bin_len_ptr,
             std::ptr::null_mut(),
         )
@@ -798,50 +803,31 @@ pub unsafe fn mprotect_readwrite(ptr: *mut libc::c_void) -> i32 {
     unsafe { libsodium_sys::sodium_mprotect_readwrite(ptr) }
 }
 
-/// Pad a buffer to a multiple of `blocksize` using the ISO/IEC 7816-4 scheme
+/// Pad a buffer before encryption to hide its exact length.
 ///
-/// Encrypting a message reveals its exact length, and that length alone can leak a
-/// surprising amount about the contents — a yes/no answer, which command was sent, or
-/// which page was requested. Padding the plaintext up to a fixed block boundary before
-/// encryption hides those distinctions: every message in a range of sizes ends up looking
-/// identical on the wire.
+/// Uses ISO/IEC 7816-4 padding to reach the next multiple of `blocksize`.
+/// Adds a full block if `buf` is already aligned.
+/// Remove the padding after decryption.
 ///
-/// This function returns a new buffer holding a copy of `buf` followed by ISO/IEC 7816-4
-/// padding: a single `0x80` byte followed by as many `0x00` bytes as needed to reach the
-/// next multiple of `blocksize`. Because the scheme always writes that marker byte,
-/// padding adds between 1 and `blocksize` bytes — even when `buf` is already a multiple of
-/// the block size — so the padded length is always strictly greater than the original.
-///
-/// Padding must be applied *before* encryption and removed *after* decryption. It is not a
-/// substitute for encryption, and using it to hide the length of a password is discouraged;
-/// hash passwords instead so the transmitted length stays constant.
+/// The encrypted message still reveals the number of padded blocks.
 ///
 /// ## Example
 ///
 /// ```rust
-/// use libsodium_rs as sodium;
-/// use sodium::utils;
-/// use sodium::ensure_init;
+/// use libsodium_rs::{ensure_init, utils};
 ///
 /// ensure_init().unwrap();
 ///
 /// let message = b"secret";
 /// let padded = utils::pad(message, 16).unwrap();
-///
-/// // Rounded up to the next multiple of the block size
 /// assert_eq!(padded.len(), 16);
-///
-/// // Removing the padding recovers the original message
-/// let unpadded = utils::unpad(&padded, 16).unwrap();
-/// assert_eq!(unpadded, message);
+/// assert_eq!(utils::unpad(&padded, 16).unwrap(), message);
 /// ```
 ///
-/// Combined with anonymous encryption, padding hides the plaintext length from an observer:
+/// With authenticated encryption:
 ///
 /// ```rust
-/// use libsodium_rs as sodium;
-/// use sodium::{crypto_box, utils};
-/// use sodium::ensure_init;
+/// use libsodium_rs::{crypto_box, ensure_init, utils};
 ///
 /// ensure_init().unwrap();
 ///
@@ -849,23 +835,22 @@ pub unsafe fn mprotect_readwrite(ptr: *mut libc::c_void) -> i32 {
 /// let sender = crypto_box::KeyPair::generate();
 /// let nonce = crypto_box::Nonce::generate();
 ///
-/// // Pad before sealing so the ciphertext length only reveals the block count
 /// let message = b"yes";
 /// let padded = utils::pad(message, 64).unwrap();
-/// let ciphertext = crypto_box::seal(&padded, &nonce, &recipient.public_key, &sender.secret_key).unwrap();
+/// let ciphertext = crypto_box::seal(
+///     &padded, &nonce, &recipient.public_key, &sender.secret_key,
+/// ).unwrap();
 ///
-/// // The recipient opens the box and strips the padding back off
-/// let opened = crypto_box::open(&ciphertext, &nonce, &sender.public_key, &recipient.secret_key).unwrap();
-/// let plaintext = utils::unpad(&opened, 64).unwrap();
-/// assert_eq!(plaintext, message);
+/// let opened = crypto_box::open(
+///     &ciphertext, &nonce, &sender.public_key, &recipient.secret_key,
+/// ).unwrap();
+/// assert_eq!(utils::unpad(&opened, 64).unwrap(), message);
 /// ```
 ///
-/// # Arguments
-/// * `buf` - The data to pad
-/// * `blocksize` - The block size to pad up to; must be greater than zero
+/// # Errors
 ///
-/// # Returns
-/// * `Result<Vec<u8>>` - The padded data, or [`SodiumError::InvalidPadding`] if `blocksize` is zero
+/// Returns [`SodiumError::InvalidPadding`] if `blocksize` is zero or the
+/// padded buffer would be too large to allocate.
 ///
 /// [`SodiumError::InvalidPadding`]: crate::SodiumError::InvalidPadding
 pub fn pad(buf: &[u8], blocksize: usize) -> Result<Vec<u8>> {
@@ -874,8 +859,11 @@ pub fn pad(buf: &[u8], blocksize: usize) -> Result<Vec<u8>> {
     }
 
     let unpadded_len = buf.len();
-    // Padding adds at most a full extra block, so this capacity is always sufficient.
-    let max_len = unpadded_len + blocksize;
+    let padding_len = blocksize - unpadded_len % blocksize;
+    let max_len = unpadded_len
+        .checked_add(padding_len)
+        .filter(|&len| len <= isize::MAX as usize)
+        .ok_or(crate::SodiumError::InvalidPadding)?;
     let mut padded = vec![0u8; max_len];
     padded[..unpadded_len].copy_from_slice(buf);
 
@@ -960,6 +948,150 @@ pub use vec_utils::{secure_vec, SecureVec};
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_little_endian_arithmetic_carries_and_wraps() {
+        let mut n = [255, 0];
+        increment_le(&mut n);
+        assert_eq!(n, [0, 1]);
+        let mut n = [255, 255];
+        increment_le(&mut n);
+        assert_eq!(n, [0, 0]);
+        increment_le(&mut []);
+
+        let mut a = [255, 0];
+        add_le(&mut a, &[1, 0]);
+        assert_eq!(a, [0, 1]);
+        sub_le(&mut a, &[1, 0]);
+        assert_eq!(a, [255, 0]);
+
+        let mut a = [0, 0];
+        sub_le(&mut a, &[1, 0]);
+        assert_eq!(a, [255, 255]);
+        add_le(&mut a, &[1, 0]);
+        assert_eq!(a, [0, 0]);
+    }
+
+    #[test]
+    fn test_little_endian_arithmetic_uses_shared_length() {
+        let mut a = [255, 7];
+        add_le(&mut a, &[1]);
+        assert_eq!(a, [0, 7]);
+        sub_le(&mut a, &[1]);
+        assert_eq!(a, [255, 7]);
+
+        let mut a = [1];
+        add_le(&mut a, &[2, 9]);
+        assert_eq!(a, [3]);
+        sub_le(&mut a, &[1, 9]);
+        assert_eq!(a, [2]);
+
+        add_le(&mut a, &[]);
+        sub_le(&mut a, &[]);
+        assert_eq!(a, [2]);
+        add_le(&mut [], &[1]);
+        sub_le(&mut [], &[1]);
+    }
+
+    fn reference_add_le(a: &mut [u8], b: &[u8], subtract: bool) {
+        let mut carry = 0i16;
+        for (x, &y) in a.iter_mut().zip(b) {
+            let v = if subtract {
+                i16::from(*x) - i16::from(y) - carry
+            } else {
+                i16::from(*x) + i16::from(y) + carry
+            };
+            *x = v as u8;
+            carry = i16::from(!(0..=255).contains(&v));
+        }
+    }
+
+    #[test]
+    fn test_little_endian_helpers_match_reference() {
+        // 8, 12 and 24 bytes take dedicated native code paths on x86_64.
+        let mut seed = 0x2545_f491_4f6c_dd1du64;
+        for len in [1, 7, 8, 12, 16, 24, 32] {
+            let mut samples = vec![vec![0u8; len], vec![0xff; len]];
+            let mut top = vec![0u8; len];
+            top[len - 1] = 0x80;
+            samples.push(top);
+            for _ in 0..6 {
+                samples.push(
+                    (0..len)
+                        .map(|_| {
+                            seed ^= seed << 13;
+                            seed ^= seed >> 7;
+                            seed ^= seed << 17;
+                            seed as u8
+                        })
+                        .collect(),
+                );
+            }
+            let mut one = vec![0u8; len];
+            one[0] = 1;
+            for x in &samples {
+                let mut n = x.clone();
+                let mut expected = x.clone();
+                increment_le(&mut n);
+                reference_add_le(&mut expected, &one, false);
+                assert_eq!(n, expected);
+                for y in &samples {
+                    for subtract in [false, true] {
+                        let mut a = x.clone();
+                        let mut expected = x.clone();
+                        if subtract {
+                            sub_le(&mut a, y);
+                        } else {
+                            add_le(&mut a, y);
+                        }
+                        reference_add_le(&mut expected, y, subtract);
+                        assert_eq!(a, expected);
+                    }
+                    let expected = x.iter().rev().cmp(y.iter().rev()) as i32;
+                    assert_eq!(compare_le(x, y), expected);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_compare_le_length_rule() {
+        assert_eq!(compare_le(&[2, 1], &[1, 2]), -1);
+        assert_eq!(compare_le(&[5], &[5, 0]), -1);
+        assert_eq!(compare_le(&[5, 0], &[5]), 1);
+        assert_eq!(compare_le(&[6], &[5, 9]), 1);
+        assert_eq!(compare_le(&[], &[0]), -1);
+        assert_eq!(compare_le(&[], &[]), 0);
+    }
+
+    #[test]
+    fn test_hex_ignore_is_bounded_and_rejects_nul() {
+        let backing = String::from(":x\0");
+        assert_eq!(
+            hex2bin_ignore("dexad", &backing[..1]),
+            Err(crate::SodiumError::HexDecodingFailed)
+        );
+        assert_eq!(
+            hex2bin_ignore("de:ad", &backing[..1]).unwrap(),
+            [0xde, 0xad]
+        );
+        assert_eq!(hex2bin_ignore("dead", "").unwrap(), [0xde, 0xad]);
+        assert_eq!(
+            hex2bin_ignore("de:ad", "\0:"),
+            Err(crate::SodiumError::HexDecodingFailed)
+        );
+    }
+
+    #[test]
+    fn test_pad_rejects_unrepresentable_sizes() {
+        for blocksize in [usize::MAX, isize::MAX as usize + 1] {
+            assert_eq!(
+                pad(b"a", blocksize),
+                Err(crate::SodiumError::InvalidPadding)
+            );
+            assert_eq!(pad(b"", blocksize), Err(crate::SodiumError::InvalidPadding));
+        }
+    }
 
     #[test]
     fn test_pad_rounds_up_to_block_boundary() {

@@ -113,6 +113,11 @@
 use crate::{Result, SodiumError};
 use libc;
 
+fn hash_cstring(hash_str: &str) -> Result<std::ffi::CString> {
+    std::ffi::CString::new(hash_str)
+        .map_err(|_| SodiumError::InvalidInput("hash string contains null bytes".into()))
+}
+
 /// The default algorithm (currently Argon2id)
 pub const ALG_DEFAULT: i32 = libsodium_sys::crypto_pwhash_ALG_DEFAULT as i32;
 /// The Argon2id algorithm (version 1.3)
@@ -538,9 +543,7 @@ pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> Result<bool> {
         )));
     }
 
-    // Create a null-terminated C string for the hash
-    let c_hash = std::ffi::CString::new(hash_str)
-        .map_err(|_| SodiumError::InvalidInput("hash string contains null bytes".into()))?;
+    let c_hash = hash_cstring(hash_str)?;
 
     let result = unsafe {
         libsodium_sys::crypto_pwhash_str_verify(
@@ -664,9 +667,10 @@ pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> Result<bool> {
 /// Returns an error if:
 /// - `hash_str` is not a valid password hash string
 pub fn pwhash_str_needs_rehash(hash_str: &str, opslimit: u64, memlimit: usize) -> Result<bool> {
+    let c_hash = hash_cstring(hash_str)?;
     let result = unsafe {
         libsodium_sys::crypto_pwhash_str_needs_rehash(
-            hash_str.as_ptr() as *const std::os::raw::c_char,
+            c_hash.as_ptr(),
             opslimit,
             memlimit as libc::size_t,
         )
@@ -691,6 +695,18 @@ pub mod scryptsalsa208sha256;
 mod tests {
     use super::*;
     use crate::random;
+
+    #[test]
+    fn test_rehash_hash_string_bounds() {
+        let hash = pwhash_str(b"audit", OPSLIMIT_MIN, MEMLIMIT_MIN).unwrap();
+        let backing = format!("{hash}\0suffix");
+        assert_eq!(
+            pwhash_str_needs_rehash(&backing[..hash.len()], OPSLIMIT_MIN, MEMLIMIT_MIN),
+            Ok(false)
+        );
+        assert!(pwhash_str_needs_rehash(&backing[..0], OPSLIMIT_MIN, MEMLIMIT_MIN).is_err());
+        assert!(pwhash_str_needs_rehash(&backing, OPSLIMIT_MIN, MEMLIMIT_MIN).is_err());
+    }
 
     #[test]
     fn test_max_constants_match_libsodium() {

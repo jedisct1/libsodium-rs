@@ -236,7 +236,11 @@ pub mod mlkem768 {
     pub const CIPHERTEXTBYTES: usize = libsodium_sys::crypto_kem_mlkem768_CIPHERTEXTBYTES as usize;
     pub const SHAREDSECRETBYTES: usize =
         libsodium_sys::crypto_kem_mlkem768_SHAREDSECRETBYTES as usize;
+    /// Seed size for key generation.
     pub const SEEDBYTES: usize = libsodium_sys::crypto_kem_mlkem768_SEEDBYTES as usize;
+
+    /// Encapsulation seed size; use [`SEEDBYTES`] for key generation.
+    pub const ENCAPSULATIONSEEDBYTES: usize = 32;
 
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub struct PublicKey([u8; PUBLICKEYBYTES]);
@@ -250,8 +254,16 @@ pub mod mlkem768 {
     #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
     pub struct SharedSecret([u8; SHAREDSECRETBYTES]);
 
+    /// Seed for key generation.
     #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
     pub struct Seed([u8; SEEDBYTES]);
+
+    /// A 32-byte seed for repeatable encapsulation.
+    ///
+    /// Use [`Seed`] for key generation.
+    /// The seed is cleared when dropped.
+    #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
+    pub struct EncapsulationSeed([u8; ENCAPSULATIONSEEDBYTES]);
 
     pub struct KeyPair {
         pub public_key: PublicKey,
@@ -312,6 +324,11 @@ pub mod mlkem768 {
     impl_bytes_type!(Ciphertext, CIPHERTEXTBYTES, "ciphertext");
     impl_bytes_type!(SharedSecret, SHAREDSECRETBYTES, "shared secret");
     impl_bytes_type!(Seed, SEEDBYTES, "seed");
+    impl_bytes_type!(
+        EncapsulationSeed,
+        ENCAPSULATIONSEEDBYTES,
+        "encapsulation seed"
+    );
 
     impl KeyPair {
         pub fn generate() -> Result<Self> {
@@ -392,9 +409,12 @@ pub mod mlkem768 {
         Ok((Ciphertext(ciphertext), SharedSecret(shared_secret)))
     }
 
+    /// Create a shared secret for the recipient.
+    ///
+    /// The same public key and seed give the same ciphertext and shared secret.
     pub fn encapsulate_deterministic(
         public_key: &PublicKey,
-        seed: &Seed,
+        seed: &EncapsulationSeed,
     ) -> Result<(Ciphertext, SharedSecret)> {
         let mut ciphertext = [0u8; CIPHERTEXTBYTES];
         let mut shared_secret = [0u8; SHAREDSECRETBYTES];
@@ -465,7 +485,11 @@ pub mod xwing {
     pub const SECRETKEYBYTES: usize = libsodium_sys::crypto_kem_xwing_SECRETKEYBYTES as usize;
     pub const CIPHERTEXTBYTES: usize = libsodium_sys::crypto_kem_xwing_CIPHERTEXTBYTES as usize;
     pub const SHAREDSECRETBYTES: usize = libsodium_sys::crypto_kem_xwing_SHAREDSECRETBYTES as usize;
+    /// Seed size for key generation.
     pub const SEEDBYTES: usize = libsodium_sys::crypto_kem_xwing_SEEDBYTES as usize;
+
+    /// Encapsulation seed size; use [`SEEDBYTES`] for key generation.
+    pub const ENCAPSULATIONSEEDBYTES: usize = 64;
 
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub struct PublicKey([u8; PUBLICKEYBYTES]);
@@ -479,8 +503,16 @@ pub mod xwing {
     #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
     pub struct SharedSecret([u8; SHAREDSECRETBYTES]);
 
+    /// Seed for key generation.
     #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
     pub struct Seed([u8; SEEDBYTES]);
+
+    /// A 64-byte seed for repeatable encapsulation.
+    ///
+    /// Use [`Seed`] for key generation.
+    /// The seed is cleared when dropped.
+    #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
+    pub struct EncapsulationSeed([u8; ENCAPSULATIONSEEDBYTES]);
 
     pub struct KeyPair {
         pub public_key: PublicKey,
@@ -541,6 +573,11 @@ pub mod xwing {
     impl_bytes_type!(Ciphertext, CIPHERTEXTBYTES, "ciphertext");
     impl_bytes_type!(SharedSecret, SHAREDSECRETBYTES, "shared secret");
     impl_bytes_type!(Seed, SEEDBYTES, "seed");
+    impl_bytes_type!(
+        EncapsulationSeed,
+        ENCAPSULATIONSEEDBYTES,
+        "encapsulation seed"
+    );
 
     impl KeyPair {
         pub fn generate() -> Result<Self> {
@@ -621,9 +658,12 @@ pub mod xwing {
         Ok((Ciphertext(ciphertext), SharedSecret(shared_secret)))
     }
 
+    /// Create a shared secret for the recipient.
+    ///
+    /// The same public key and seed give the same ciphertext and shared secret.
     pub fn encapsulate_deterministic(
         public_key: &PublicKey,
-        seed: &Seed,
+        seed: &EncapsulationSeed,
     ) -> Result<(Ciphertext, SharedSecret)> {
         let mut ciphertext = [0u8; CIPHERTEXTBYTES];
         let mut shared_secret = [0u8; SHAREDSECRETBYTES];
@@ -734,19 +774,64 @@ mod tests {
 
     #[test]
     fn test_mlkem768_deterministic_apis() {
-        let seed = [5u8; mlkem768::SEEDBYTES];
-        let keypair1 = mlkem768::KeyPair::from_seed(&seed).unwrap();
-        let keypair2 = mlkem768::KeyPair::from_seed(&seed).unwrap();
+        assert_eq!(mlkem768::SEEDBYTES, 64);
+        assert_eq!(mlkem768::ENCAPSULATIONSEEDBYTES, 32);
+        assert_eq!(
+            std::mem::size_of::<mlkem768::EncapsulationSeed>(),
+            mlkem768::ENCAPSULATIONSEEDBYTES
+        );
+        for len in 0..=128 {
+            if len != mlkem768::ENCAPSULATIONSEEDBYTES {
+                assert!(matches!(
+                    mlkem768::EncapsulationSeed::from_bytes(&vec![0u8; len]),
+                    Err(SodiumError::InvalidInput(_))
+                ));
+            }
+        }
+
+        let seed = mlkem768::Seed::from_bytes(&[5u8; mlkem768::SEEDBYTES]).unwrap();
+        let keypair1 = mlkem768::KeyPair::from_seed(seed.as_bytes()).unwrap();
+        let keypair2 = mlkem768::KeyPair::from_seed(seed.as_bytes()).unwrap();
         assert_eq!(keypair1.public_key, keypair2.public_key);
         assert_eq!(keypair1.secret_key, keypair2.secret_key);
 
-        let enc_seed = mlkem768::Seed::from([9u8; mlkem768::SEEDBYTES]);
+        let bytes = [9u8; mlkem768::ENCAPSULATIONSEEDBYTES];
+        let enc_seed = mlkem768::EncapsulationSeed::from(bytes);
+        assert_eq!(
+            mlkem768::EncapsulationSeed::from_bytes(&bytes).unwrap(),
+            enc_seed
+        );
+        assert_eq!(enc_seed.as_bytes(), &bytes);
+        assert_eq!(enc_seed.as_ref(), bytes.as_slice());
+        assert_eq!(
+            mlkem768::EncapsulationSeed::try_from(bytes.as_slice()).unwrap(),
+            enc_seed
+        );
+        let extracted: [u8; mlkem768::ENCAPSULATIONSEEDBYTES] = enc_seed.clone().into();
+        assert_eq!(extracted, bytes);
+        assert!(mlkem768::Seed::from_bytes(&bytes).is_err());
         let (ct1, ss1) =
             mlkem768::encapsulate_deterministic(&keypair1.public_key, &enc_seed).unwrap();
         let (ct2, ss2) =
             mlkem768::encapsulate_deterministic(&keypair1.public_key, &enc_seed).unwrap();
         assert_eq!(ct1, ct2);
         assert_eq!(ss1, ss2);
+        assert_eq!(
+            mlkem768::decapsulate(&ct1, &keypair1.secret_key).unwrap(),
+            ss1
+        );
+
+        let mut changed_bytes = *enc_seed.as_bytes();
+        changed_bytes[mlkem768::ENCAPSULATIONSEEDBYTES - 1] ^= 1;
+        let changed_seed = mlkem768::EncapsulationSeed::from(changed_bytes);
+        let (changed_ct, changed_ss) =
+            mlkem768::encapsulate_deterministic(&keypair1.public_key, &changed_seed).unwrap();
+        assert_ne!(ct1, changed_ct);
+        assert_ne!(ss1, changed_ss);
+        assert_eq!(
+            mlkem768::decapsulate(&changed_ct, &keypair1.secret_key).unwrap(),
+            changed_ss
+        );
     }
 
     #[test]
@@ -760,16 +845,58 @@ mod tests {
 
     #[test]
     fn test_xwing_deterministic_apis() {
-        let seed = [3u8; xwing::SEEDBYTES];
-        let keypair1 = xwing::KeyPair::from_seed(&seed).unwrap();
-        let keypair2 = xwing::KeyPair::from_seed(&seed).unwrap();
+        assert_eq!(xwing::SEEDBYTES, 32);
+        assert_eq!(xwing::ENCAPSULATIONSEEDBYTES, 64);
+        assert_eq!(
+            std::mem::size_of::<xwing::EncapsulationSeed>(),
+            xwing::ENCAPSULATIONSEEDBYTES
+        );
+        for len in 0..=128 {
+            if len != xwing::ENCAPSULATIONSEEDBYTES {
+                assert!(matches!(
+                    xwing::EncapsulationSeed::from_bytes(&vec![0u8; len]),
+                    Err(SodiumError::InvalidInput(_))
+                ));
+            }
+        }
+
+        let seed = xwing::Seed::from_bytes(&[3u8; xwing::SEEDBYTES]).unwrap();
+        let keypair1 = xwing::KeyPair::from_seed(seed.as_bytes()).unwrap();
+        let keypair2 = xwing::KeyPair::from_seed(seed.as_bytes()).unwrap();
         assert_eq!(keypair1.public_key, keypair2.public_key);
         assert_eq!(keypair1.secret_key, keypair2.secret_key);
 
-        let enc_seed = xwing::Seed::from([11u8; xwing::SEEDBYTES]);
+        let bytes = [11u8; xwing::ENCAPSULATIONSEEDBYTES];
+        let enc_seed = xwing::EncapsulationSeed::from(bytes);
+        assert_eq!(
+            xwing::EncapsulationSeed::from_bytes(&bytes).unwrap(),
+            enc_seed
+        );
+        assert_eq!(enc_seed.as_bytes(), &bytes);
+        assert_eq!(enc_seed.as_ref(), bytes.as_slice());
+        assert_eq!(
+            xwing::EncapsulationSeed::try_from(bytes.as_slice()).unwrap(),
+            enc_seed
+        );
+        let extracted: [u8; xwing::ENCAPSULATIONSEEDBYTES] = enc_seed.clone().into();
+        assert_eq!(extracted, bytes);
+        assert!(xwing::Seed::from_bytes(&bytes).is_err());
         let (ct1, ss1) = xwing::encapsulate_deterministic(&keypair1.public_key, &enc_seed).unwrap();
         let (ct2, ss2) = xwing::encapsulate_deterministic(&keypair1.public_key, &enc_seed).unwrap();
         assert_eq!(ct1, ct2);
         assert_eq!(ss1, ss2);
+        assert_eq!(xwing::decapsulate(&ct1, &keypair1.secret_key).unwrap(), ss1);
+
+        let mut changed_bytes = *enc_seed.as_bytes();
+        changed_bytes[32] ^= 8;
+        let changed_seed = xwing::EncapsulationSeed::from(changed_bytes);
+        let (changed_ct, changed_ss) =
+            xwing::encapsulate_deterministic(&keypair1.public_key, &changed_seed).unwrap();
+        assert_ne!(ct1, changed_ct);
+        assert_ne!(ss1, changed_ss);
+        assert_eq!(
+            xwing::decapsulate(&changed_ct, &keypair1.secret_key).unwrap(),
+            changed_ss
+        );
     }
 }

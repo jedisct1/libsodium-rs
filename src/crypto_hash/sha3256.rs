@@ -56,7 +56,7 @@ impl Default for State {
 impl State {
     /// Creates a new SHA3-256 hashing state.
     pub fn new() -> Self {
-        let mut state = std::mem::MaybeUninit::uninit();
+        let mut state = std::mem::MaybeUninit::zeroed();
         let state_ptr = state.as_mut_ptr();
 
         unsafe {
@@ -143,6 +143,63 @@ mod tests {
             "fc88e0ac33ff105e376f4ece95fb06925d5ab20080dbe3aede7dd47e45dfd931"
         );
         assert_eq!(result, crate::crypto_hash::hash_sha3256(b"test data"));
+    }
+
+    #[test]
+    fn test_empty_hash() {
+        let result = hash(b"");
+        let mut encoded = [0; BYTES * 2];
+        let encoded = Hex::encode(&mut encoded, result).unwrap();
+        assert_eq!(
+            std::str::from_utf8(encoded).unwrap(),
+            "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"
+        );
+        assert_eq!(State::new().finalize(), result);
+        let mut state = State::new();
+        state.update(b"");
+        assert_eq!(state.finalize(), result);
+    }
+
+    #[test]
+    fn test_chunked_block_boundaries() {
+        for len in [1, 135, 136, 137, 271, 272, 273, 1024] {
+            let input: Vec<u8> = (0..len).map(|i| i as u8).collect();
+            let mut expected = [0; BYTES];
+            assert_eq!(
+                unsafe {
+                    libsodium_sys::crypto_hash_sha3256(
+                        expected.as_mut_ptr(),
+                        input.as_ptr(),
+                        input.len() as u64,
+                    )
+                },
+                0
+            );
+            assert_eq!(hash(&input), expected, "input length {len}");
+            for chunk_len in [1, 7, 135, 136, 137] {
+                let mut state = State::new();
+                state.update(b"");
+                for chunk in input.chunks(chunk_len) {
+                    state.update(chunk);
+                    state.update(b"");
+                }
+                assert_eq!(
+                    state.finalize(),
+                    expected,
+                    "input length {len}, chunk length {chunk_len}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_constructor_initializes_all_fields() {
+        let mut expected = libsodium_sys::crypto_hash_sha3256_state { opaque: [0; 256] };
+        assert_eq!(
+            unsafe { libsodium_sys::crypto_hash_sha3256_init(&mut expected) },
+            0
+        );
+        assert_eq!(State::new().state.opaque, expected.opaque);
     }
 
     #[test]

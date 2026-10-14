@@ -150,7 +150,13 @@ pub fn scalarmult(secret_key: &[u8], public_key: &[u8]) -> Result<[u8; BYTES]> {
 /// Computes a shared secret using Ed25519 without clamping the secret key
 ///
 /// This function multiplies a point `public_key` by a scalar `secret_key` (without clamping)
-/// and puts the Y coordinate of the resulting point into the returned bytes.
+/// and returns the encoded resulting point.
+/// The point must be canonical and belong to the main subgroup.
+///
+/// The scalar is a little-endian number whose top bit is ignored.
+/// Values at or above L, the order of the main subgroup, behave as if reduced modulo L.
+/// If the result is the identity point, for example because the scalar is zero or a
+/// multiple of L, an error is returned.
 ///
 /// WARNING: This function skips the clamping operation, which can be dangerous in most
 /// applications. Only use this function if you fully understand the security implications
@@ -173,7 +179,7 @@ pub fn scalarmult(secret_key: &[u8], public_key: &[u8]) -> Result<[u8; BYTES]> {
 /// # Errors
 ///
 /// * `SodiumError::InvalidInput` - If the key lengths are incorrect
-/// * `SodiumError::OperationError` - If the operation fails (e.g., if `secret_key` is 0 or if `public_key` is not valid)
+/// * `SodiumError::OperationError` - If the result is the identity point, or if `public_key` is not a canonical point in the main subgroup
 ///
 /// # Example
 ///
@@ -307,7 +313,12 @@ pub fn scalarmult_base(secret_key: &[u8]) -> Result<[u8; BYTES]> {
 /// Multiplies the Ed25519 base point by a scalar without clamping
 ///
 /// This function multiplies the Ed25519 base point by a scalar (without clamping)
-/// and puts the Y coordinate of the resulting point into the returned bytes.
+/// and returns the encoded resulting point.
+///
+/// The scalar is a little-endian number whose top bit is ignored.
+/// Values at or above L, the order of the main subgroup, behave as if reduced modulo L.
+/// If the result is the identity point, for example because the scalar is zero or a
+/// multiple of L, an error is returned.
 ///
 /// WARNING: This function skips the clamping operation, which can be dangerous in most
 /// applications. Only use this function if you fully understand the security implications
@@ -327,7 +338,7 @@ pub fn scalarmult_base(secret_key: &[u8]) -> Result<[u8; BYTES]> {
 /// # Errors
 ///
 /// * `SodiumError::InvalidInput` - If the key length is incorrect
-/// * `SodiumError::OperationError` - If the operation fails (e.g., if the secret key is 0)
+/// * `SodiumError::OperationError` - If the result is the identity point, for example when the scalar is zero or a multiple of L
 ///
 /// # Example
 ///
@@ -382,6 +393,42 @@ pub fn scalarmult_base_noclamp(secret_key: &[u8]) -> Result<[u8; BYTES]> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const L: [u8; SCALARBYTES] = [
+        0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde,
+        0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x10,
+    ];
+
+    #[test]
+    fn test_noclamp_scalar_domain() {
+        crate::ensure_init().unwrap();
+        let mut one = [0u8; SCALARBYTES];
+        one[0] = 1;
+        let mut l_plus_one = L;
+        l_plus_one[0] += 1;
+        let mut one_with_top_bit = one;
+        one_with_top_bit[31] |= 0x80;
+        let mut top_bit_only = [0u8; SCALARBYTES];
+        top_bit_only[31] = 0x80;
+
+        let base = scalarmult_base_noclamp(&one).unwrap();
+        assert_eq!(scalarmult_base_noclamp(&l_plus_one).unwrap(), base);
+        assert_eq!(scalarmult_base_noclamp(&one_with_top_bit).unwrap(), base);
+        assert_eq!(scalarmult_noclamp(&one, &base).unwrap(), base);
+        assert_eq!(scalarmult_noclamp(&l_plus_one, &base).unwrap(), base);
+
+        for scalar in [[0u8; SCALARBYTES], L, top_bit_only] {
+            assert!(matches!(
+                scalarmult_base_noclamp(&scalar),
+                Err(SodiumError::OperationError(_))
+            ));
+            assert!(matches!(
+                scalarmult_noclamp(&scalar, &base),
+                Err(SodiumError::OperationError(_))
+            ));
+        }
+    }
 
     #[test]
     fn test_scalarmult() {

@@ -298,25 +298,18 @@ impl Key {
 ///
 /// ## Algorithm Details
 ///
-/// The derivation process uses BLAKE2b-512 with the following inputs:
-/// - The master key is used as the BLAKE2b key
-/// - The subkey ID is encoded as a 64-bit little-endian integer
-/// - The context is a fixed-size 8-byte string
-/// - The output is truncated to the requested subkey length
+/// Uses keyed BLAKE2b with an empty message and the master key.
+/// The 16-byte salt is the subkey ID in little-endian order followed
+/// by 8 zero bytes.
+/// The 16-byte personalization is the context followed by 8 zero bytes.
+///
+/// The requested length is a BLAKE2b parameter.
+/// A shorter subkey is not a truncated 64-byte subkey.
 ///
 /// This construction ensures that subkeys derived with different IDs or contexts
 /// are independent, even if derived from the same master key.
 ///
-/// The derivation process is deterministic - the same inputs will always produce
-/// the same subkey. This allows applications to regenerate the same subkeys
-/// as long as they have access to the master key.
-///
-/// ## Algorithm Details
-///
-/// The subkey derivation works as follows:
-/// 1. Initialize a BLAKE2b hash state with the master key
-/// 2. Update the hash state with the context and subkey ID
-/// 3. Finalize the hash to produce the subkey
+/// The same inputs produce the same subkey.
 ///
 /// ## Security Considerations
 ///
@@ -548,10 +541,13 @@ pub mod blake2b {
     ///
     /// ## Algorithm Details
     ///
-    /// The subkey derivation works as follows:
-    /// 1. Initialize a BLAKE2b hash state with the master key
-    /// 2. Update the hash state with the context and subkey ID
-    /// 3. Finalize the hash to produce the subkey
+    /// Uses keyed BLAKE2b with an empty message and the master key.
+    /// The 16-byte salt is the subkey ID in little-endian order followed
+    /// by 8 zero bytes.
+    /// The 16-byte personalization is the context followed by 8 zero bytes.
+    ///
+    /// The requested length is a BLAKE2b parameter.
+    /// A shorter subkey is not a truncated 64-byte subkey.
     ///
     /// ## Security Considerations
     ///
@@ -1389,6 +1385,74 @@ mod tests {
         // Derive a different subkey with a different ID
         let subkey2 = blake2b::derive_from_key(32, 2, context, &master_key).unwrap();
         assert_ne!(subkey, subkey2);
+    }
+
+    #[test]
+    fn test_blake2b_salt_and_personal_formula() {
+        use crate::crypto_generichash::blake2b as hash;
+
+        let bytes = [0x42; KEYBYTES];
+        let key = Key::from(bytes);
+        let explicit_key = blake2b::Key::from(bytes);
+        for context in [[0; CONTEXTBYTES], *b"MyAppV01", [0xff; CONTEXTBYTES]] {
+            let mut personal = [0; hash::PERSONALBYTES];
+            personal[..CONTEXTBYTES].copy_from_slice(&context);
+            for id in [0, 1, 0x0123456789abcdef, u64::MAX] {
+                let mut salt = [0; hash::SALTBYTES];
+                salt[..8].copy_from_slice(&id.to_le_bytes());
+                for subkey_len in [16, 17, 32, 63, 64] {
+                    let expected = hash::hash_with_salt_and_personal(
+                        b"",
+                        Some(&bytes),
+                        subkey_len,
+                        Some(&salt),
+                        Some(&personal),
+                    )
+                    .unwrap();
+                    assert_eq!(
+                        derive_from_key(subkey_len, id, &context, &key).unwrap(),
+                        expected,
+                        "subkey length {subkey_len}, ID {id}, context {context:?}",
+                    );
+                    assert_eq!(
+                        blake2b::derive_from_key(subkey_len, id, &context, &explicit_key).unwrap(),
+                        expected,
+                        "subkey length {subkey_len}, ID {id}, context {context:?}",
+                    );
+                }
+            }
+        }
+
+        let id = 0x0123456789abcdef;
+        let context = b"MyAppV01";
+        let long = derive_from_key(64, id, context, &key).unwrap();
+        let mut message = context.to_vec();
+        message.extend_from_slice(&id.to_le_bytes());
+        for subkey_len in [16, 17, 32, 63] {
+            let actual = derive_from_key(subkey_len, id, context, &key).unwrap();
+            assert_ne!(actual, long[..subkey_len]);
+            assert_ne!(
+                actual,
+                crate::crypto_generichash::blake2b::hash_with_key(&message, &bytes, subkey_len)
+                    .unwrap(),
+            );
+        }
+    }
+
+    #[test]
+    fn test_blake2b_parameter_boundaries() {
+        let bytes = [0x42; KEYBYTES];
+        let key = Key::from(bytes);
+        let explicit_key = blake2b::Key::from(bytes);
+        for subkey_len in [0, 1, 15, 65] {
+            assert!(derive_from_key(subkey_len, 0, b"MyAppV01", &key).is_err());
+            assert!(blake2b::derive_from_key(subkey_len, 0, b"MyAppV01", &explicit_key).is_err());
+        }
+        for context_len in [CONTEXTBYTES - 1, CONTEXTBYTES + 1] {
+            let context = vec![0; context_len];
+            assert!(derive_from_key(32, 0, &context, &key).is_err());
+            assert!(blake2b::derive_from_key(32, 0, &context, &explicit_key).is_err());
+        }
     }
 
     #[test]

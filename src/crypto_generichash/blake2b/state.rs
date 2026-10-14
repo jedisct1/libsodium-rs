@@ -35,7 +35,7 @@
 //!
 //! - **Speed**: Faster than MD5, SHA-1, SHA-2, and SHA-3 on modern 64-bit platforms
 //! - **Security**: Designed to be resistant to length extension attacks
-//! - **Flexibility**: Supports variable output lengths from 1 to 64 bytes
+//! - **Output length**: Accepts hash outputs from 16 to 64 bytes.
 //! - **Keyed hashing**: Can be used as a MAC (Message Authentication Code)
 //! - **Customization**: Supports salt and personalization parameters
 //! - **Parallel computation**: Can be efficiently parallelized (though not implemented in this API)
@@ -141,10 +141,10 @@ impl State {
     ///
     /// ## Arguments
     ///
-    /// * `key` - Optional key for keyed hashing (MAC). If provided, must be at most
-    ///   `KEYBYTES_MAX` (64) bytes long.
-    /// * `output_len` - Length of the output hash in bytes. Must be between `BYTES_MIN` (1)
-    ///   and `BYTES_MAX` (64) bytes.
+    /// * `key` - Optional key of 0 to 64 bytes for keyed hashing (MAC).
+    ///   An empty key gives an unkeyed hash.
+    ///   Use at least `KEYBYTES_MIN` (16) bytes for keyed hashing.
+    /// * `output_len` - Output length in bytes, from 16 to 64.
     ///
     /// ## Returns
     ///
@@ -153,7 +153,7 @@ impl State {
     /// ## Errors
     ///
     /// Returns an error if:
-    /// - The output length is not between `BYTES_MIN` (1) and `BYTES_MAX` (64) bytes
+    /// - The output length is less than 16 or greater than 64 bytes
     /// - The key length is greater than `KEYBYTES_MAX` (64) bytes
     /// - The state initialization fails
     ///
@@ -186,7 +186,6 @@ impl State {
         }
 
         if let Some(key) = key {
-            // KEYBYTES_MIN is 0, so we only need to check the upper bound
             if key.len() > KEYBYTES_MAX {
                 return Err(SodiumError::InvalidInput(format!(
                     "Key length must be at most {KEYBYTES_MAX} bytes"
@@ -276,10 +275,10 @@ impl State {
     ///
     /// ## Arguments
     ///
-    /// * `key` - Optional key for keyed hashing (MAC). If provided, must be at most
-    ///   `KEYBYTES_MAX` (64) bytes long.
-    /// * `output_len` - Length of the output hash in bytes. Must be between `BYTES_MIN` (1)
-    ///   and `BYTES_MAX` (64) bytes.
+    /// * `key` - Optional key of 0 to 64 bytes for keyed hashing (MAC).
+    ///   An empty key gives an unkeyed hash.
+    ///   Use at least `KEYBYTES_MIN` (16) bytes for keyed hashing.
+    /// * `output_len` - Output length in bytes, from 16 to 64.
     /// * `salt` - Optional salt for customizing the hash. If provided, must be exactly
     ///   `SALTBYTES` (16) bytes long.
     /// * `personal` - Optional personalization string for customizing the hash. If provided,
@@ -292,7 +291,7 @@ impl State {
     /// ## Errors
     ///
     /// Returns an error if:
-    /// - The output length is not between `BYTES_MIN` (1) and `BYTES_MAX` (64) bytes
+    /// - The output length is less than 16 or greater than 64 bytes
     /// - The key length is greater than `KEYBYTES_MAX` (64) bytes
     /// - The salt is provided and its length is not `SALTBYTES` (16) bytes
     /// - The personalization is provided and its length is not `PERSONALBYTES` (16) bytes
@@ -337,7 +336,6 @@ impl State {
         }
 
         if let Some(key) = key {
-            // KEYBYTES_MIN is 0, so we only need to check the upper bound
             if key.len() > KEYBYTES_MAX {
                 return Err(SodiumError::InvalidInput(format!(
                     "Key length must be at most {KEYBYTES_MAX} bytes"

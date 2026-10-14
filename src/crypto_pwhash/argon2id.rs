@@ -349,9 +349,12 @@ pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> bool {
         "password length must be between {PASSWD_MIN} and {PASSWD_MAX} bytes"
     );
 
+    let Ok(c_hash) = super::hash_cstring(hash_str) else {
+        return false;
+    };
     let result = unsafe {
         libsodium_sys::crypto_pwhash_argon2id_str_verify(
-            hash_str.as_ptr() as *const std::os::raw::c_char,
+            c_hash.as_ptr(),
             password.as_ptr() as *const std::os::raw::c_char,
             password.len() as u64,
         )
@@ -436,9 +439,10 @@ pub fn pwhash_str_verify(hash_str: &str, password: &[u8]) -> bool {
 /// * `Option<bool>` - `Some(true)` if the hash needs rehashing, `Some(false)` if it doesn't,
 ///   or `None` if the hash string is invalid
 pub fn pwhash_str_needs_rehash(hash_str: &str, opslimit: u64, memlimit: usize) -> Option<bool> {
+    let c_hash = super::hash_cstring(hash_str).ok()?;
     let result = unsafe {
         libsodium_sys::crypto_pwhash_argon2id_str_needs_rehash(
-            hash_str.as_ptr() as *const std::os::raw::c_char,
+            c_hash.as_ptr(),
             opslimit,
             memlimit as libc::size_t,
         )
@@ -455,6 +459,32 @@ pub fn pwhash_str_needs_rehash(hash_str: &str, opslimit: u64, memlimit: usize) -
 mod tests {
     use super::*;
     use crate::random;
+
+    #[test]
+    fn test_hash_string_bounds() {
+        let password = b"audit";
+        let hash = pwhash_str(password, OPSLIMIT_MIN, MEMLIMIT_MIN).unwrap();
+        let backing = format!("{hash}\0suffix");
+        let valid = &backing[..hash.len()];
+        let empty = &backing[..0];
+
+        assert!(pwhash_str_verify(valid, password));
+        assert!(!pwhash_str_verify(empty, password));
+        assert!(!pwhash_str_verify(&backing, password));
+
+        assert_eq!(
+            pwhash_str_needs_rehash(valid, OPSLIMIT_MIN, MEMLIMIT_MIN),
+            Some(false)
+        );
+        assert_eq!(
+            pwhash_str_needs_rehash(empty, OPSLIMIT_MIN, MEMLIMIT_MIN),
+            None
+        );
+        assert_eq!(
+            pwhash_str_needs_rehash(&backing, OPSLIMIT_MIN, MEMLIMIT_MIN),
+            None
+        );
+    }
 
     #[test]
     fn test_max_constants_match_libsodium() {

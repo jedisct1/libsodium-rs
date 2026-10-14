@@ -266,7 +266,7 @@ pub mod siphash24 {
     }
 }
 
-/// SipHash-1-3 hash function with 64-bit output
+/// SipHash-2-4 variant with 128-bit output
 pub mod siphashx24 {
     use super::*;
 
@@ -275,7 +275,7 @@ pub mod siphashx24 {
     /// Number of bytes in a hash
     pub const BYTES: usize = libsodium_sys::crypto_shorthash_siphashx24_BYTES as usize;
 
-    /// A key for SipHash-1-3
+    /// A key for the 128-bit SipHash-2-4 variant
     #[derive(Debug, Clone, Eq, PartialEq, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
     pub struct Key([u8; KEYBYTES]);
 
@@ -307,11 +307,9 @@ pub mod siphashx24 {
         }
     }
 
-    /// Compute a 64-bit hash using SipHash-1-3
+    /// Computes a hash using the 128-bit SipHash-2-4 variant.
     ///
-    /// This function computes a 64-bit hash of the input data using the SipHash-1-3 algorithm.
-    /// It is designed for hash table lookups, manipulation detection, and other non-cryptographic
-    /// purposes where collision resistance is required.
+    /// Use this for keyed hash table lookups, not as a general-purpose hash.
     ///
     /// # Arguments
     ///
@@ -416,6 +414,30 @@ mod tests {
         // Same data and key should produce the same hash
         let hash2 = siphashx24::shorthash(data, &key);
         assert_eq!(hash, hash2);
+    }
+
+    #[test]
+    fn test_siphashx24_output_size_and_native_hash() {
+        assert_eq!(siphashx24::BYTES, 16);
+        let bytes = [0x42; siphashx24::KEYBYTES];
+        let key = siphashx24::Key::from(bytes);
+        for len in [0, 1, 7, 8, 9, 16, 17] {
+            let input: Vec<u8> = (0..len).map(|i| i as u8).collect();
+            let mut expected = [0; 16];
+            assert_eq!(
+                unsafe {
+                    libsodium_sys::crypto_shorthash_siphashx24(
+                        expected.as_mut_ptr(),
+                        input.as_ptr(),
+                        input.len() as u64,
+                        bytes.as_ptr(),
+                    )
+                },
+                0
+            );
+            let actual = siphashx24::shorthash(&input, &key);
+            assert_eq!(actual, expected, "input length {len}");
+        }
     }
 
     #[test]

@@ -58,8 +58,15 @@ use crate::{Result, SodiumError};
 /// used in the Ed25519 signature scheme. These operations include point validation,
 /// addition, subtraction, scalar multiplication, and scalar reduction.
 ///
-/// Points on the Edwards25519 curve are represented as their compressed Y coordinate
-/// in 32 bytes. Scalars are also 32 bytes.
+/// Points are represented as their compressed Y coordinate in 32 bytes.
+///
+/// Scalar arithmetic takes 32-byte little-endian numbers in `[0, L)`,
+/// where L is the order of the main subgroup.
+/// Check this range before calling.
+/// Inversion also requires a nonzero scalar.
+///
+/// Use [`ed25519::scalar_reduce`] for other integers.
+/// For a 32-byte input, fill the remaining 32 bytes with zeros first.
 ///
 /// ## Security Considerations
 ///
@@ -259,15 +266,13 @@ pub mod ed25519 {
         Ok(r)
     }
 
-    /// Reduce a scalar to the valid range for the Edwards25519 curve
+    /// Reduce a 64-byte little-endian integer to a scalar in `[0, L)`.
     ///
-    /// This function reduces a 64-byte scalar to a 32-byte scalar modulo L, where L is the
-    /// order of the main subgroup of the Edwards25519 curve.
+    /// L is the order of the main Edwards25519 subgroup.
+    /// The result may be zero and cannot then be inverted.
     ///
-    /// # Mathematical Background
-    ///
-    /// The scalar is reduced modulo L = 2^252 + 27_742_317_777_372_353_535_851_937_790_883_648_493, which
-    /// is the order of the main subgroup of the Edwards25519 curve.
+    /// To reduce a 32-byte input, copy it into the first half of a
+    /// zero-filled 64-byte array.
     ///
     /// # Arguments
     /// * `s` - Scalar to reduce (must be exactly `NONREDUCEDSCALARBYTES` length)
@@ -335,9 +340,8 @@ pub mod ed25519 {
 
     /// Generate a random scalar for the Edwards25519 curve
     ///
-    /// This function generates a random scalar suitable for use with the Edwards25519 curve.
-    /// The scalar is uniformly distributed between 0 and L-1, where L is the order of the
-    /// main subgroup of the Edwards25519 curve.
+    /// Returns a uniformly random canonical little-endian scalar in `(0, L)`,
+    /// where L is the order of the main subgroup of the Edwards25519 curve.
     ///
     /// # Returns
     /// * `[u8; SCALARBYTES]` - A random scalar
@@ -347,12 +351,9 @@ pub mod ed25519 {
     /// ```rust
     /// use libsodium_rs::crypto_core::ed25519;
     ///
-    /// // Generate a random scalar
     /// let scalar = ed25519::scalar_random();
-    ///
-    /// // Use the scalar for operations
-    /// let point = ed25519::random();
-    /// let result = ed25519::scalar_mul(&point, &scalar).unwrap();
+    /// let other_scalar = ed25519::scalar_random();
+    /// let result = ed25519::scalar_mul(&other_scalar, &scalar).unwrap();
     /// ```
     pub fn scalar_random() -> [u8; SCALARBYTES] {
         let mut r = [0u8; SCALARBYTES];
@@ -369,7 +370,8 @@ pub mod ed25519 {
     /// is such that s * s^(-1) ≡ 1 (mod L).
     ///
     /// # Arguments
-    /// * `s` - Scalar to invert (must be exactly `SCALARBYTES` length)
+    /// * `s` - Nonzero canonical little-endian scalar in `(0, L)`, exactly
+    ///   `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The multiplicative inverse of the scalar or an error
@@ -384,15 +386,8 @@ pub mod ed25519 {
     /// ```rust
     /// use libsodium_rs::crypto_core::ed25519;
     ///
-    /// // Generate a random non-zero scalar
-    /// let mut scalar = ed25519::scalar_random();
-    /// scalar[0] |= 1; // Ensure it's not zero
-    ///
-    /// // Compute its inverse
+    /// let scalar = ed25519::scalar_random();
     /// let inverse = ed25519::scalar_invert(&scalar).unwrap();
-    ///
-    /// // Verify: scalar * inverse ≡ 1 (mod L)
-    /// // This would require additional operations to verify
     /// ```
     pub fn scalar_invert(s: &[u8]) -> Result<[u8; SCALARBYTES]> {
         if s.len() != SCALARBYTES {
@@ -424,7 +419,8 @@ pub mod ed25519 {
     /// s + (-s) ≡ 0 (mod L).
     ///
     /// # Arguments
-    /// * `s` - Scalar to negate (must be exactly `SCALARBYTES` length)
+    /// * `s` - Canonical little-endian scalar in `[0, L)`, exactly
+    ///   `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The negation of the scalar or an error
@@ -465,12 +461,12 @@ pub mod ed25519 {
 
     /// Compute the complement of a scalar
     ///
-    /// This function computes the complement of a scalar modulo L, where L is the order of the
-    /// main subgroup of the Edwards25519 curve. The complement of a scalar s is defined as
-    /// L - 1 - s.
+    /// Computes `(1 - s) mod L`, where L is the order of the main subgroup
+    /// of the Edwards25519 curve.
     ///
     /// # Arguments
-    /// * `s` - Scalar to complement (must be exactly `SCALARBYTES` length)
+    /// * `s` - Canonical little-endian scalar in `[0, L)`, exactly
+    ///   `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The complement of the scalar or an error
@@ -512,8 +508,10 @@ pub mod ed25519 {
     /// of the Edwards25519 curve.
     ///
     /// # Arguments
-    /// * `x` - First scalar (must be exactly `SCALARBYTES` length)
-    /// * `y` - Second scalar (must be exactly `SCALARBYTES` length)
+    /// Both inputs must be canonical little-endian scalars in `[0, L)`.
+    ///
+    /// * `x` - First scalar, exactly `SCALARBYTES` bytes
+    /// * `y` - Second scalar, exactly `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The sum of the scalars or an error
@@ -564,8 +562,10 @@ pub mod ed25519 {
     /// main subgroup of the Edwards25519 curve.
     ///
     /// # Arguments
-    /// * `x` - First scalar (must be exactly `SCALARBYTES` length)
-    /// * `y` - Second scalar to subtract (must be exactly `SCALARBYTES` length)
+    /// Both inputs must be canonical little-endian scalars in `[0, L)`.
+    ///
+    /// * `x` - Scalar to subtract from, exactly `SCALARBYTES` bytes
+    /// * `y` - Scalar to subtract, exactly `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The difference of the scalars (x - y) or an error
@@ -616,8 +616,10 @@ pub mod ed25519 {
     /// of the Edwards25519 curve.
     ///
     /// # Arguments
-    /// * `x` - First scalar (must be exactly `SCALARBYTES` length)
-    /// * `y` - Second scalar (must be exactly `SCALARBYTES` length)
+    /// Both inputs must be canonical little-endian scalars in `[0, L)`.
+    ///
+    /// * `x` - First scalar, exactly `SCALARBYTES` bytes
+    /// * `y` - Second scalar, exactly `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The product of the scalars or an error
@@ -728,6 +730,14 @@ pub mod ed25519 {
 /// - It is a prime-order group (the order is exactly 2^252 + 27_742_317_777_372_353_535_851_937_790_883_648_493)
 /// - All elements have a unique encoding (unlike raw Edwards25519 points)
 /// - It is designed to be safer for implementing cryptographic protocols
+///
+/// Scalar arithmetic takes 32-byte little-endian numbers in `[0, L)`,
+/// where L is the group order given above.
+/// Check this range before calling.
+/// Inversion also requires a nonzero scalar.
+///
+/// Use [`ristretto255::scalar_reduce`] for other integers.
+/// For a 32-byte input, fill the remaining 32 bytes with zeros first.
 ///
 /// ## Security Considerations
 ///
@@ -980,15 +990,13 @@ pub mod ristretto255 {
         Ok(r)
     }
 
-    /// Reduce a scalar to the valid range for the Ristretto255 group
+    /// Reduce a 64-byte little-endian integer to a scalar in `[0, L)`.
     ///
-    /// This function reduces a 64-byte scalar to a 32-byte scalar modulo L, where L is the
-    /// order of the Ristretto255 group (which is 2^252 + 27_742_317_777_372_353_535_851_937_790_883_648_493).
+    /// L is the Ristretto255 group order.
+    /// The result may be zero and cannot then be inverted.
     ///
-    /// # Mathematical Background
-    ///
-    /// The scalar is reduced modulo the order of the Ristretto255 group, which ensures that
-    /// the resulting scalar is in the range [0, L-1].
+    /// To reduce a 32-byte input, copy it into the first half of a
+    /// zero-filled 64-byte array.
     ///
     /// # Arguments
     /// * `s` - Scalar to reduce (must be exactly `NONREDUCEDSCALARBYTES` length)
@@ -1027,9 +1035,8 @@ pub mod ristretto255 {
 
     /// Generate a random scalar for the Ristretto255 group
     ///
-    /// This function generates a random scalar suitable for use with the Ristretto255 group.
-    /// The scalar is uniformly distributed between 0 and L-1, where L is the order of the
-    /// Ristretto255 group.
+    /// Returns a uniformly random canonical little-endian scalar in `(0, L)`,
+    /// where L is the Ristretto255 group order.
     ///
     /// # Returns
     /// * `[u8; SCALARBYTES]` - A random scalar
@@ -1059,7 +1066,8 @@ pub mod ristretto255 {
     /// s * s^(-1) ≡ 1 (mod L).
     ///
     /// # Arguments
-    /// * `s` - Scalar to invert (must be exactly `SCALARBYTES` length)
+    /// * `s` - Nonzero canonical little-endian scalar in `(0, L)`, exactly
+    ///   `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The multiplicative inverse of the scalar or an error
@@ -1074,15 +1082,8 @@ pub mod ristretto255 {
     /// ```rust
     /// use libsodium_rs::crypto_core::ristretto255;
     ///
-    /// // Generate a random non-zero scalar
-    /// let mut scalar = ristretto255::scalar_random();
-    /// scalar[0] |= 1; // Ensure it's not zero
-    ///
-    /// // Compute its inverse
+    /// let scalar = ristretto255::scalar_random();
     /// let inverse = ristretto255::scalar_invert(&scalar).unwrap();
-    ///
-    /// // Verify: scalar * inverse ≡ 1 (mod L)
-    /// // This would require scalar_mul to verify
     /// ```
     pub fn scalar_invert(s: &[u8]) -> Result<[u8; SCALARBYTES]> {
         if s.len() != SCALARBYTES {
@@ -1113,7 +1114,8 @@ pub mod ristretto255 {
     /// Ristretto255 group. The negation -s of a scalar s is such that s + (-s) ≡ 0 (mod L).
     ///
     /// # Arguments
-    /// * `s` - Scalar to negate (must be exactly `SCALARBYTES` length)
+    /// * `s` - Canonical little-endian scalar in `[0, L)`, exactly
+    ///   `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The negation of the scalar or an error
@@ -1154,11 +1156,11 @@ pub mod ristretto255 {
 
     /// Compute the complement of a scalar
     ///
-    /// This function computes the complement of a scalar modulo L, where L is the order of the
-    /// Ristretto255 group. The complement of a scalar s is defined as L - 1 - s.
+    /// Computes `(1 - s) mod L`, where L is the Ristretto255 group order.
     ///
     /// # Arguments
-    /// * `s` - Scalar to complement (must be exactly `SCALARBYTES` length)
+    /// * `s` - Canonical little-endian scalar in `[0, L)`, exactly
+    ///   `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The complement of the scalar or an error
@@ -1202,8 +1204,10 @@ pub mod ristretto255 {
     /// This function adds two scalars modulo L, where L is the order of the Ristretto255 group.
     ///
     /// # Arguments
-    /// * `x` - First scalar (must be exactly `SCALARBYTES` length)
-    /// * `y` - Second scalar (must be exactly `SCALARBYTES` length)
+    /// Both inputs must be canonical little-endian scalars in `[0, L)`.
+    ///
+    /// * `x` - First scalar, exactly `SCALARBYTES` bytes
+    /// * `y` - Second scalar, exactly `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The sum of the scalars or an error
@@ -1258,8 +1262,10 @@ pub mod ristretto255 {
     /// Ristretto255 group.
     ///
     /// # Arguments
-    /// * `x` - First scalar (must be exactly `SCALARBYTES` length)
-    /// * `y` - Second scalar to subtract (must be exactly `SCALARBYTES` length)
+    /// Both inputs must be canonical little-endian scalars in `[0, L)`.
+    ///
+    /// * `x` - Scalar to subtract from, exactly `SCALARBYTES` bytes
+    /// * `y` - Scalar to subtract, exactly `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The difference of the scalars (x - y) or an error
@@ -1314,8 +1320,10 @@ pub mod ristretto255 {
     /// Note that this is scalar-scalar multiplication, not scalar-point multiplication.
     ///
     /// # Arguments
-    /// * `x` - First scalar (must be exactly `SCALARBYTES` length)
-    /// * `y` - Second scalar (must be exactly `SCALARBYTES` length)
+    /// Both inputs must be canonical little-endian scalars in `[0, L)`.
+    ///
+    /// * `x` - First scalar, exactly `SCALARBYTES` bytes
+    /// * `y` - Second scalar, exactly `SCALARBYTES` bytes
     ///
     /// # Returns
     /// * `Result<[u8; SCALARBYTES]>` - The product of the scalars or an error
@@ -2179,9 +2187,9 @@ pub mod salsa20 {
     }
 }
 
-/// Keccak-f[1600] permutation
+/// `Keccak-f[1600]` permutation
 ///
-/// This module provides direct access to the Keccak-f[1600] permutation, the core
+/// This module provides direct access to the `Keccak-f[1600]` permutation, the core
 /// building block of SHA-3, SHAKE, and TurboSHAKE.
 ///
 /// This is a low-level API. For most applications, use the high-level XOF API
@@ -2224,7 +2232,7 @@ pub mod keccak1600 {
         unsafe { libsodium_sys::crypto_core_keccak1600_statebytes() }
     }
 
-    /// Keccak-f[1600] state
+    /// `Keccak-f[1600]` state
     ///
     /// Represents the internal state of the Keccak permutation. The state must
     /// be initialized before use and can be reused after reinitializing.
@@ -2305,7 +2313,7 @@ pub mod keccak1600 {
             }
         }
 
-        /// Applies the Keccak-f[1600] permutation with 24 rounds
+        /// Applies the `Keccak-f[1600]` permutation with 24 rounds
         ///
         /// This is the full-strength permutation used by SHAKE128 and SHAKE256.
         pub fn permute_24(&mut self) {
@@ -2314,7 +2322,7 @@ pub mod keccak1600 {
             }
         }
 
-        /// Applies the Keccak-p[1600,12] permutation with 12 rounds
+        /// Applies the `Keccak-p[1600,12]` permutation with 12 rounds
         ///
         /// This reduced-round variant is used by TurboSHAKE128 and TurboSHAKE256
         /// for approximately 2x better performance while maintaining the same

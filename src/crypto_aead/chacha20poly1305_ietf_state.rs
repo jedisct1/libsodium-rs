@@ -54,7 +54,7 @@
 //! # }
 //! ```
 
-use crate::crypto_aead::chacha20poly1305_ietf::{Key, Nonce, ABYTES};
+use crate::crypto_aead::chacha20poly1305_ietf::{validate_message_len, Key, Nonce, ABYTES};
 use crate::{Result, SodiumError};
 use std::convert::TryInto;
 
@@ -116,6 +116,7 @@ impl State {
 /// # Errors
 /// Returns an error if:
 /// * The nonce is not valid
+/// * The message exceeds [`super::chacha20poly1305_ietf::messagebytes_max`]
 /// * The encryption operation fails
 pub fn encrypt_afternm(
     message: &[u8],
@@ -123,6 +124,7 @@ pub fn encrypt_afternm(
     nonce: impl AsRef<Nonce>,
     state: &State,
 ) -> Result<Vec<u8>> {
+    validate_message_len(message.len())?;
     let nonce = nonce.as_ref();
     let mut ciphertext = vec![0u8; message.len() + ABYTES];
     let mut ciphertext_len = 0u64;
@@ -182,6 +184,7 @@ pub fn encrypt_afternm(
 /// Returns an error if:
 /// * The nonce is not valid
 /// * The ciphertext is too short (less than `ABYTES` bytes)
+/// * The message would exceed [`super::chacha20poly1305_ietf::messagebytes_max`]
 /// * Authentication verification fails
 /// * The decryption operation fails
 pub fn decrypt_afternm(
@@ -195,6 +198,7 @@ pub fn decrypt_afternm(
             "ciphertext must be at least {ABYTES} bytes"
         )));
     }
+    validate_message_len(ciphertext.len() - ABYTES)?;
 
     let nonce = nonce.as_ref();
     let mut message = vec![0u8; ciphertext.len() - ABYTES];
@@ -254,6 +258,7 @@ pub fn decrypt_afternm(
 /// # Errors
 /// Returns an error if:
 /// * The nonce is not valid
+/// * The message exceeds [`super::chacha20poly1305_ietf::messagebytes_max`]
 /// * The encryption operation fails
 pub fn encrypt_detached_afternm(
     message: &[u8],
@@ -261,6 +266,7 @@ pub fn encrypt_detached_afternm(
     nonce: impl AsRef<Nonce>,
     state: &State,
 ) -> Result<(Vec<u8>, Vec<u8>)> {
+    validate_message_len(message.len())?;
     let nonce = nonce.as_ref();
     let mut ciphertext = vec![0u8; message.len()];
     let mut tag = vec![0u8; ABYTES];
@@ -323,6 +329,7 @@ pub fn encrypt_detached_afternm(
 /// Returns an error if:
 /// * The nonce is not exactly `NPUBBYTES` bytes
 /// * The tag is not exactly `ABYTES` bytes
+/// * The ciphertext exceeds [`super::chacha20poly1305_ietf::messagebytes_max`]
 /// * Authentication verification fails
 /// * The decryption operation fails
 pub fn decrypt_detached_afternm(
@@ -337,6 +344,7 @@ pub fn decrypt_detached_afternm(
             "tag must be exactly {ABYTES} bytes"
         )));
     }
+    validate_message_len(ciphertext.len())?;
 
     let nonce = nonce.as_ref();
     let mut message = vec![0u8; ciphertext.len()];
@@ -368,4 +376,49 @@ pub fn decrypt_detached_afternm(
     }
 
     Ok(message)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::crypto_aead::chacha20poly1305_ietf as aead;
+
+    #[test]
+    fn test_state_matches_direct() {
+        let key = Key::generate();
+        let state = State::from_key(&key).unwrap();
+        for message in [b"".as_slice(), b"message".as_slice()] {
+            let nonce = Nonce::generate();
+            let combined = encrypt_afternm(message, Some(b"context"), &nonce, &state).unwrap();
+            assert_eq!(
+                combined,
+                aead::encrypt(message, Some(b"context"), &nonce, &key).unwrap()
+            );
+            let (ciphertext, tag) =
+                encrypt_detached_afternm(message, Some(b"context"), &nonce, &state).unwrap();
+            assert_eq!(&combined[..message.len()], ciphertext);
+            assert_eq!(&combined[message.len()..], tag);
+            assert_eq!(
+                decrypt_afternm(&combined, Some(b"context"), &nonce, &state).unwrap(),
+                message
+            );
+            assert_eq!(
+                decrypt_detached_afternm(&ciphertext, &tag, Some(b"context"), &nonce, &state)
+                    .unwrap(),
+                message
+            );
+            assert!(decrypt_afternm(&combined, Some(b"wrong context"), &nonce, &state).is_err());
+            assert!(
+                decrypt_afternm(&combined[..ABYTES - 1], Some(b"context"), &nonce, &state).is_err()
+            );
+            assert!(decrypt_detached_afternm(
+                &ciphertext,
+                &tag[..ABYTES - 1],
+                Some(b"context"),
+                &nonce,
+                &state
+            )
+            .is_err());
+        }
+    }
 }

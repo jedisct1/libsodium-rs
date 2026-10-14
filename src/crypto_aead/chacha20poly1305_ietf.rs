@@ -263,6 +263,13 @@ pub fn messagebytes_max() -> usize {
     unsafe { libsodium_sys::crypto_aead_chacha20poly1305_ietf_messagebytes_max() }
 }
 
+pub(super) fn validate_message_len(message_len: usize) -> Result<()> {
+    if message_len > messagebytes_max() {
+        return Err(SodiumError::InvalidInput("message too large".into()));
+    }
+    Ok(())
+}
+
 /// A secret key for ChaCha20-Poly1305-IETF encryption and decryption
 ///
 /// This struct represents a 256-bit (32-byte) secret key used for
@@ -406,6 +413,7 @@ impl From<Key> for [u8; KEYBYTES] {
 /// # Errors
 /// Returns an error if:
 /// * The nonce is not exactly `NPUBBYTES` bytes
+/// * The message exceeds [`messagebytes_max`]
 /// * The encryption operation fails
 pub fn encrypt(
     message: &[u8],
@@ -413,6 +421,7 @@ pub fn encrypt(
     nonce: &Nonce,
     key: &Key,
 ) -> Result<Vec<u8>> {
+    validate_message_len(message.len())?;
     let ad = additional_data.unwrap_or(&[]);
     let mut ciphertext = vec![0u8; message.len() + ABYTES];
     let mut ciphertext_len = 0u64;
@@ -503,6 +512,7 @@ pub fn encrypt(
 /// Returns an error if:
 /// * The nonce is not exactly `NPUBBYTES` bytes
 /// * The ciphertext is too short (less than `ABYTES` bytes)
+/// * The message would exceed [`messagebytes_max`]
 /// * Authentication verification fails
 /// * The decryption operation fails
 pub fn decrypt(
@@ -514,6 +524,7 @@ pub fn decrypt(
     if ciphertext.len() < ABYTES {
         return Err(SodiumError::InvalidInput("ciphertext too short".into()));
     }
+    validate_message_len(ciphertext.len() - ABYTES)?;
 
     let ad = additional_data.unwrap_or(&[]);
     let mut message = vec![0u8; ciphertext.len() - ABYTES];
@@ -598,6 +609,7 @@ pub fn decrypt(
 /// # Errors
 /// Returns an error if:
 /// * The nonce is not exactly `NPUBBYTES` bytes
+/// * The message exceeds [`messagebytes_max`]
 /// * The encryption operation fails
 pub fn encrypt_detached(
     message: &[u8],
@@ -605,6 +617,7 @@ pub fn encrypt_detached(
     nonce: &Nonce,
     key: &Key,
 ) -> Result<(Vec<u8>, Vec<u8>)> {
+    validate_message_len(message.len())?;
     let ad = additional_data.unwrap_or(&[]);
     let mut ciphertext = vec![0u8; message.len()];
     let mut tag = vec![0u8; ABYTES];
@@ -700,6 +713,7 @@ pub fn encrypt_detached(
 /// Returns an error if:
 /// * The nonce is not exactly `NPUBBYTES` bytes
 /// * The tag is not exactly `ABYTES` bytes
+/// * The ciphertext exceeds [`messagebytes_max`]
 /// * Authentication verification fails
 /// * The decryption operation fails
 pub fn decrypt_detached(
@@ -714,6 +728,7 @@ pub fn decrypt_detached(
             "tag must be exactly {ABYTES} bytes"
         )));
     }
+    validate_message_len(ciphertext.len())?;
 
     let ad = additional_data.unwrap_or(&[]);
     let mut message = vec![0u8; ciphertext.len()];
@@ -775,21 +790,59 @@ mod tests {
     }
 
     #[test]
+    fn test_message_length_boundaries() {
+        let max = messagebytes_max();
+        for len in [0, 1, max - 1, max] {
+            assert!(validate_message_len(len).is_ok());
+        }
+        for len in [max.checked_add(1).unwrap(), usize::MAX] {
+            assert!(matches!(
+                validate_message_len(len),
+                Err(SodiumError::InvalidInput(_))
+            ));
+        }
+        assert!(max.checked_add(ABYTES).is_some());
+    }
+
+    #[test]
+    fn test_invalid_ciphertext_and_tag_lengths() {
+        let key = Key::generate();
+        let nonce = Nonce::generate();
+        let combined = encrypt(b"message", Some(b"context"), &nonce, &key).unwrap();
+        let (ciphertext, tag) =
+            encrypt_detached(b"message", Some(b"context"), &nonce, &key).unwrap();
+
+        assert!(matches!(
+            decrypt(&combined[..ABYTES - 1], Some(b"context"), &nonce, &key),
+            Err(SodiumError::InvalidInput(_))
+        ));
+        assert!(matches!(
+            decrypt_detached(
+                &ciphertext,
+                &tag[..ABYTES - 1],
+                Some(b"context"),
+                &nonce,
+                &key
+            ),
+            Err(SodiumError::InvalidInput(_))
+        ));
+    }
+
+    #[test]
     fn test_encrypt_decrypt() {
         ensure_init().expect("Failed to initialize libsodium");
 
         let key = Key::generate();
-        let nonce = Nonce::generate();
         let message = b"Hello, ChaCha20-Poly1305-IETF!";
         let additional_data = b"Important metadata";
 
-        // Encrypt the message
-        let ciphertext = encrypt(message, Some(additional_data), &nonce, &key).unwrap();
-
-        // Decrypt the message
-        let decrypted = decrypt(&ciphertext, Some(additional_data), &nonce, &key).unwrap();
-
-        assert_eq!(decrypted, message);
+        for message in [message.as_slice(), b""] {
+            let nonce = Nonce::generate();
+            let ciphertext = encrypt(message, Some(additional_data), &nonce, &key).unwrap();
+            assert_eq!(ciphertext.len(), message.len() + ABYTES);
+            let decrypted = decrypt(&ciphertext, Some(additional_data), &nonce, &key).unwrap();
+            assert_eq!(decrypted, message);
+        }
     }
 
     #[test]
@@ -797,19 +850,22 @@ mod tests {
         ensure_init().expect("Failed to initialize libsodium");
 
         let key = Key::generate();
-        let nonce = Nonce::generate();
         let message = b"Hello, ChaCha20-Poly1305-IETF with detached MAC!";
         let additional_data = b"Important metadata";
 
-        // Encrypt the message with detached MAC
-        let (ciphertext, tag) =
-            encrypt_detached(message, Some(additional_data), &nonce, &key).unwrap();
-
-        // Decrypt the message with detached MAC
-        let decrypted =
-            decrypt_detached(&ciphertext, &tag, Some(additional_data), &nonce, &key).unwrap();
-
-        assert_eq!(decrypted, message);
+        for message in [message.as_slice(), b""] {
+            let nonce = Nonce::generate();
+            let (ciphertext, tag) =
+                encrypt_detached(message, Some(additional_data), &nonce, &key).unwrap();
+            assert_eq!(ciphertext.len(), message.len());
+            assert_eq!(tag.len(), ABYTES);
+            let combined = encrypt(message, Some(additional_data), &nonce, &key).unwrap();
+            assert_eq!(&combined[..message.len()], ciphertext);
+            assert_eq!(&combined[message.len()..], tag);
+            let decrypted =
+                decrypt_detached(&ciphertext, &tag, Some(additional_data), &nonce, &key).unwrap();
+            assert_eq!(decrypted, message);
+        }
     }
 
     #[test]

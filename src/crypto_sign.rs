@@ -1295,9 +1295,16 @@ pub fn ed25519_sk_to_curve25519(ed25519_sk: &SecretKey) -> Result<[u8; 32]> {
 ///
 /// This struct is used for creating or verifying signatures when the message is too large
 /// to fit in memory at once, or when the message is being received in chunks.
+///
+/// After finalization, the state cannot be used again, even if the call fails.
+/// Use a new state for another message.
+///
+/// Clone an unfinished state to process different endings of the same message.
+/// A clone of a finalized state is still unusable.
 #[derive(Debug, Clone)]
 pub struct State {
     state: libsodium_sys::crypto_sign_state,
+    finalized: bool,
 }
 
 impl State {
@@ -1334,7 +1341,10 @@ impl State {
             ));
         }
 
-        Ok(State { state })
+        Ok(State {
+            state,
+            finalized: false,
+        })
     }
 
     /// Update the signature state with a message chunk
@@ -1367,8 +1377,15 @@ impl State {
     /// * `Result<()>` - Success or an error
     ///
     /// # Errors
-    /// Returns an error if the update fails (extremely rare)
+    /// Returns `SodiumError::OperationError` if the state is finished or the
+    /// update fails.
     pub fn update(&mut self, message_chunk: &[u8]) -> Result<()> {
+        if self.finalized {
+            return Err(SodiumError::OperationError(
+                "Signature state is already finalized".into(),
+            ));
+        }
+
         let result = unsafe {
             libsodium_sys::crypto_sign_update(
                 &mut self.state,
@@ -1388,8 +1405,8 @@ impl State {
 
     /// Finalize the signature creation process
     ///
-    /// This function finalizes the signature creation process and returns the signature.
-    /// It should be called after all message chunks have been processed with `update()`.
+    /// Call after processing all message chunks with [`State::update`].
+    /// The state cannot be used again, even if signature creation fails.
     ///
     /// ## Example
     ///
@@ -1422,8 +1439,16 @@ impl State {
     /// * `Result<[u8; BYTES]>` - The signature or an error
     ///
     /// # Errors
-    /// Returns an error if finalization fails (extremely rare)
+    /// Returns `SodiumError::OperationError` if the state is already finalized
+    /// or signature creation fails.
     pub fn finalize_create(&mut self, secret_key: &SecretKey) -> Result<[u8; BYTES]> {
+        if self.finalized {
+            return Err(SodiumError::OperationError(
+                "Signature state is already finalized".into(),
+            ));
+        }
+        self.finalized = true;
+
         let mut sig = [0u8; BYTES];
         let mut sig_len: u64 = 0;
 
@@ -1447,8 +1472,8 @@ impl State {
 
     /// Finalize the signature verification process
     ///
-    /// This function finalizes the signature verification process. It should be called
-    /// after all message chunks have been processed with `update()`.
+    /// Call after processing all message chunks with [`State::update`].
+    /// The state cannot be used again, even if verification fails.
     ///
     /// ## Example
     ///
@@ -1483,8 +1508,14 @@ impl State {
     /// * `public_key` - The public key to verify with
     ///
     /// # Returns
-    /// * `bool` - `true` if the signature is valid, `false` otherwise
+    /// * `bool` - `true` for a valid signature; `false` if invalid or if the
+    ///   state is already finalized
     pub fn finalize_verify(&mut self, signature: &[u8; BYTES], public_key: &PublicKey) -> bool {
+        if self.finalized {
+            return false;
+        }
+        self.finalized = true;
+
         let result = unsafe {
             libsodium_sys::crypto_sign_final_verify(
                 &mut self.state,
@@ -1676,6 +1707,92 @@ mod tests {
         verify_state3.update(part1).unwrap();
         verify_state3.update(part2).unwrap();
         assert!(!verify_state3.finalize_verify(&signature, &wrong_pk));
+    }
+
+    #[test]
+    fn test_multipart_creation_is_terminal() {
+        let keypair = KeyPair::generate().unwrap();
+        let mut signatures = Vec::new();
+
+        for message in [
+            b"first transcript".as_slice(),
+            b"different transcript".as_slice(),
+        ] {
+            let mut state = State::new().unwrap();
+            state.update(message).unwrap();
+            let signature = state.finalize_create(&keypair.secret_key).unwrap();
+            let mut verifier = State::new().unwrap();
+            verifier.update(message).unwrap();
+            assert!(verifier.finalize_verify(&signature, &keypair.public_key));
+            for mut finalized in [state.clone(), state] {
+                for chunk in [b"".as_slice(), b"next message".as_slice()] {
+                    assert!(matches!(
+                        finalized.update(chunk),
+                        Err(SodiumError::OperationError(_))
+                    ));
+                }
+                assert!(matches!(
+                    finalized.finalize_create(&keypair.secret_key),
+                    Err(SodiumError::OperationError(_))
+                ));
+                assert!(!finalized.finalize_verify(&signature, &keypair.public_key));
+            }
+            signatures.push(signature);
+        }
+
+        assert_ne!(signatures[0], signatures[1]);
+    }
+
+    #[test]
+    fn test_multipart_verification_is_terminal() {
+        let keypair = KeyPair::generate().unwrap();
+        let message = b"signed transcript";
+        let mut signer = State::new().unwrap();
+        signer.update(message).unwrap();
+        let signature = signer.finalize_create(&keypair.secret_key).unwrap();
+
+        for (transcript, valid) in [
+            (message.as_slice(), true),
+            (b"unrelated transcript".as_slice(), false),
+        ] {
+            let mut verifier = State::new().unwrap();
+            verifier.update(transcript).unwrap();
+            assert_eq!(
+                verifier.finalize_verify(&signature, &keypair.public_key),
+                valid
+            );
+            for mut finalized in [verifier.clone(), verifier] {
+                assert!(!finalized.finalize_verify(&signature, &keypair.public_key));
+                for chunk in [b"".as_slice(), message.as_slice()] {
+                    assert!(matches!(
+                        finalized.update(chunk),
+                        Err(SodiumError::OperationError(_))
+                    ));
+                }
+                assert!(matches!(
+                    finalized.finalize_create(&keypair.secret_key),
+                    Err(SodiumError::OperationError(_))
+                ));
+            }
+        }
+    }
+
+    #[test]
+    fn test_multipart_clones_fork_before_finalization() {
+        let keypair = KeyPair::generate().unwrap();
+        let mut original = State::new().unwrap();
+        original.update(b"shared prefix").unwrap();
+        let mut same_transcript = original.clone();
+        let mut fork = original.clone();
+        fork.update(b" and suffix").unwrap();
+
+        let signature = original.finalize_create(&keypair.secret_key).unwrap();
+        assert!(same_transcript.finalize_verify(&signature, &keypair.public_key));
+        let fork_signature = fork.finalize_create(&keypair.secret_key).unwrap();
+        assert_ne!(signature, fork_signature);
+        let mut verifier = State::new().unwrap();
+        verifier.update(b"shared prefix and suffix").unwrap();
+        assert!(verifier.finalize_verify(&fork_signature, &keypair.public_key));
     }
 
     #[test]

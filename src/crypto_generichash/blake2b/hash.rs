@@ -22,8 +22,7 @@
 //! - **Pseudorandomness**: Output bits are indistinguishable from random when the input is unknown
 //! - **Length-extension resistance**: Unlike SHA-1/SHA-2, knowing H(m) doesn't allow computing H(m||m')
 //!
-//! BLAKE2b produces hash values
-//! of any size between 1 and 64 bytes.
+//! This API accepts BLAKE2b hash output sizes from 16 through 64 bytes.
 //!
 //! BLAKE2b features:
 //! - High speed on 64-bit platforms
@@ -58,8 +57,7 @@ use super::state::State;
 /// ## Arguments
 ///
 /// * `input` - The data to hash
-/// * `output_len` - Length of the output hash in bytes. Must be between `BYTES_MIN` (1)
-///   and `BYTES_MAX` (64) bytes.
+/// * `output_len` - Output length in bytes, from 16 to 64.
 ///
 /// ## Returns
 ///
@@ -67,7 +65,7 @@ use super::state::State;
 ///
 /// ## Errors
 ///
-/// Returns an error if the output length is not between `BYTES_MIN` (1) and `BYTES_MAX` (64) bytes
+/// Returns an error if the output length is less than 16 or greater than 64 bytes.
 ///
 /// ## Example
 ///
@@ -119,9 +117,10 @@ pub fn hash(input: &[u8], output_len: usize) -> Result<Vec<u8>, crate::SodiumErr
 /// ## Arguments
 ///
 /// * `input` - Data to hash
-/// * `key` - The key for keyed hashing (MAC). This turns the hash function
-///   into a MAC (Message Authentication Code)
-/// * `output_len` - Length of the output hash in bytes (between 1 and 64 bytes)
+/// * `key` - Key of 0 to 64 bytes for keyed hashing (MAC).
+///   An empty key gives an unkeyed hash.
+///   Use at least `KEYBYTES_MIN` (16) bytes for keyed hashing.
+/// * `output_len` - Output length in bytes, from 16 to 64.
 ///
 /// ## Returns
 ///
@@ -130,8 +129,8 @@ pub fn hash(input: &[u8], output_len: usize) -> Result<Vec<u8>, crate::SodiumErr
 /// ## Errors
 ///
 /// Returns an error if:
-/// - The output length is not between `BYTES_MIN` (1) and `BYTES_MAX` (64) bytes
-/// - The key length is not between `KEYBYTES_MIN` (0) and `KEYBYTES_MAX` (64) bytes
+/// - The output length is less than 16 or greater than 64 bytes
+/// - The key length is greater than `KEYBYTES_MAX` (64) bytes
 ///
 /// ## Example
 ///
@@ -192,10 +191,10 @@ pub fn hash_with_key(
 /// ## Arguments
 ///
 /// * `input` - The data to hash
-/// * `key` - Optional key for keyed hashing (MAC). If provided, must be at most
-///   `KEYBYTES_MAX` (64) bytes long.
-/// * `output_len` - Length of the output hash in bytes. Must be between `BYTES_MIN` (1)
-///   and `BYTES_MAX` (64) bytes.
+/// * `key` - Optional key of 0 to 64 bytes for keyed hashing (MAC).
+///   An empty key gives an unkeyed hash.
+///   Use at least `KEYBYTES_MIN` (16) bytes for keyed hashing.
+/// * `output_len` - Output length in bytes, from 16 to 64.
 /// * `salt` - Optional salt for customizing the hash. If provided, must be exactly
 ///   `SALTBYTES` (16) bytes long.
 /// * `personal` - Optional personalization string for customizing the hash. If provided,
@@ -208,7 +207,7 @@ pub fn hash_with_key(
 /// ## Errors
 ///
 /// Returns an error if:
-/// - The output length is not between `BYTES_MIN` (1) and `BYTES_MAX` (64) bytes
+/// - The output length is less than 16 or greater than 64 bytes
 /// - The key length is greater than `KEYBYTES_MAX` (64) bytes
 /// - The salt is provided and its length is not `SALTBYTES` (16) bytes
 /// - The personalization is provided and its length is not `PERSONALBYTES` (16) bytes

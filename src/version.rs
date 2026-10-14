@@ -1,34 +1,23 @@
 //! # Version Information
 //!
-//! This module provides functions to query the version of the libsodium library.
+//! Read the version of the libsodium library in use.
+//! It may differ from the copy shipped with this crate.
 //!
 //! ## Example
 //!
 //! ```rust
 //! use libsodium_rs as sodium;
 //!
-//! // Get the version string of the libsodium library
 //! let version = sodium::version::version_string();
 //! println!("libsodium version: {}", version);
 //!
-//! // Get the major and minor version numbers
 //! let major = sodium::version::library_version_major();
 //! let minor = sodium::version::library_version_minor();
 //! println!("libsodium version: {}.{}", major, minor);
 //!
-//! // Check if the library meets the minimum requirements
 //! let is_minimal = sodium::version::library_minimal();
-//! println!("Is minimal implementation: {}", is_minimal);
+//! println!("Minimal build: {}", is_minimal);
 //! ```
-
-/// The version string of the libsodium library (e.g., "1.0.21")
-pub const VERSION_STRING: &str = "1.0.21";
-
-/// The major version number of the libsodium library
-pub const LIBRARY_VERSION_MAJOR: i32 = 28;
-
-/// The minor version number of the libsodium library
-pub const LIBRARY_VERSION_MINOR: i32 = 0;
 
 /// Returns the version string of the libsodium library
 ///
@@ -51,7 +40,7 @@ pub fn version_string() -> &'static str {
         let ptr = libsodium_sys::sodium_version_string();
         std::ffi::CStr::from_ptr(ptr)
             .to_str()
-            .unwrap_or(VERSION_STRING)
+            .expect("libsodium returned a non-UTF-8 version string")
     }
 }
 
